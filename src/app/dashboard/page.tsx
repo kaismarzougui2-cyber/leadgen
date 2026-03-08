@@ -12,23 +12,33 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_pro, plan, daily_search_count, last_search_date")
-    .eq("id", user.id)
+  let { data: sub } = await supabase
+    .from("subscriptions")
+    .select("plan, searches_used, searches_limit, extra_credits")
+    .eq("user_id", user.id)
     .single();
 
-  const today = new Date().toISOString().split("T")[0];
-  const searchesUsed =
-    profile?.last_search_date === today
-      ? (profile?.daily_search_count ?? 0)
-      : 0;
+  if (!sub) {
+    await supabase.from("subscriptions").insert({
+      user_id: user.id,
+      plan: "free",
+      searches_limit: 5,
+      searches_used: 0,
+    });
+    const { data: newSub } = await supabase
+      .from("subscriptions")
+      .select("plan, searches_used, searches_limit, extra_credits")
+      .eq("user_id", user.id)
+      .single();
+    sub = newSub;
+  }
 
   return (
     <DashboardClient
       user={{ email: user.email ?? "" }}
-      isPro={profile?.is_pro ?? false}
-      searchesUsed={searchesUsed}
+      plan={sub?.plan ?? "free"}
+      searchesUsed={sub?.searches_used ?? 0}
+      searchesLimit={(sub?.searches_limit ?? 5) + (sub?.extra_credits ?? 0)}
     />
   );
 }
