@@ -81,11 +81,11 @@ export async function POST(request: NextRequest) {
 
     // Call Google Places API
     const apiKey = process.env.GOOGLE_PLACES_API_KEY
+
+    // Demo mode: return mock data when API key is not configured
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'Clé API Google Places non configurée.' },
-        { status: 500 }
-      )
+      const mockResults = generateMockResults(job, city)
+      return NextResponse.json({ results: mockResults, total: mockResults.length, demo: true })
     }
 
     const query = `${job} à ${city}`
@@ -121,13 +121,12 @@ export async function POST(request: NextRequest) {
 
     // Transform and filter results
     const results = places
-      .filter((place: GooglePlace) => place.formattedPhoneNumber) // Only with phone
+      .filter((place: GooglePlace) => place.formattedPhoneNumber)
       .map((place: GooglePlace) => {
         const hasWebsite = !!place.websiteUri
         const hasPhone = !!place.formattedPhoneNumber
         const trustScore = computeTrustScore(hasWebsite, hasPhone)
-        const trustStatus =
-          hasWebsite && hasPhone ? 'Vérifié' : 'Risqué'
+        const trustStatus = hasWebsite && hasPhone ? 'Vérifié' : 'Risqué'
 
         return {
           id: place.id,
@@ -148,6 +147,44 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+function generateMockResults(job: string, city: string): SearchResult[] {
+  const names = [
+    `${job} Dupont & Fils`,
+    `Atelier ${job} Martin`,
+    `${job} Express ${city}`,
+    `Pro ${job} Services`,
+    `${job} du Centre`,
+    `${job} Leblanc`,
+    `${job} & Co ${city}`,
+    `Cabinet ${job} Bernard`,
+  ]
+  const websites = [
+    'https://example-pro.fr',
+    null,
+    'https://artisan-demo.fr',
+    null,
+    'https://services-demo.fr',
+    'https://pro-demo.fr',
+    null,
+    'https://cabinet-demo.fr',
+  ]
+
+  return names.map((name, i) => {
+    const hasWebsite = websites[i] !== null
+    const trustScore = computeTrustScore(hasWebsite, true)
+    return {
+      id: `demo-${i}`,
+      name,
+      phone: `0${Math.floor(Math.random() * 9) + 1} ${Array.from({ length: 4 }, () =>
+        String(Math.floor(Math.random() * 90) + 10).padStart(2, '0')
+      ).join(' ')}`,
+      website: websites[i],
+      trustScore,
+      trustStatus: hasWebsite ? 'Vérifié' : 'Risqué',
+    }
+  }).sort((a, b) => b.trustScore - a.trustScore)
 }
 
 interface GooglePlace {

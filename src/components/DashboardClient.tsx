@@ -47,6 +47,7 @@ export default function DashboardClient({ user, isPro, searchesUsed: initialSear
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
   const [searchesUsed, setSearchesUsed] = useState(initialSearchesUsed);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({
     loading: false,
@@ -88,6 +89,7 @@ export default function DashboardClient({ user, isPro, searchesUsed: initialSear
       }
 
       setResults(data.results);
+      setIsDemo(!!data.demo);
       setSearched(true);
       if (!isPro) {
         setSearchesUsed((prev) => Math.min(prev + 1, DAILY_LIMIT));
@@ -323,6 +325,15 @@ export default function DashboardClient({ user, isPro, searchesUsed: initialSear
         {/* Results */}
         {searched && (
           <section className="space-y-4">
+            {isDemo && (
+              <div className="flex items-center gap-3 p-4 bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-xl text-sm text-[#8B5CF6]">
+                <Zap className="w-4 h-4 shrink-0" />
+                <span>
+                  <strong>Mode Démo</strong> — Données fictives générées localement. Ajoutez votre clé{" "}
+                  <code className="bg-white/10 px-1 rounded">GOOGLE_PLACES_API_KEY</code> sur Vercel pour des résultats réels.
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-white">
