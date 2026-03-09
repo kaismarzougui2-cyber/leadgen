@@ -42,21 +42,22 @@ export async function POST(request: NextRequest) {
       sub = newSub
     }
 
-    if (sub) {
-      const totalAllowed = sub.searches_limit + (sub.extra_credits ?? 0)
-      if (sub.searches_used >= totalAllowed) {
-        return NextResponse.json(
-          {
-            error: `Quota mensuel atteint (${sub.searches_used}/${totalAllowed} recherches). Passez à un plan supérieur ou achetez des crédits.`,
-            limitReached: true,
-            plan: sub.plan,
-            searchesUsed: sub.searches_used,
-            searchesLimit: totalAllowed,
-          },
-          { status: 429 }
-        )
-      }
-    }
+    // QUOTA CHECK DISABLED FOR TESTING — re-enable before production
+    // if (sub) {
+    //   const totalAllowed = sub.searches_limit + (sub.extra_credits ?? 0)
+    //   if (sub.searches_used >= totalAllowed) {
+    //     return NextResponse.json(
+    //       {
+    //         error: `Quota mensuel atteint (${sub.searches_used}/${totalAllowed} recherches). Passez à un plan supérieur ou achetez des crédits.`,
+    //         limitReached: true,
+    //         plan: sub.plan,
+    //         searchesUsed: sub.searches_used,
+    //         searchesLimit: totalAllowed,
+    //       },
+    //       { status: 429 }
+    //     )
+    //   }
+    // }
 
     const apiKey = process.env.GOOGLE_PLACES_API_KEY
 

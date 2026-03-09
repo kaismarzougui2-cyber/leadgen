@@ -67,7 +67,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   const roiTotal = Math.round((roiLeads * roiConversion) / 100 * roiRevenue);
 
   const remaining = searchesLimit - searchesUsed;
-  const limitReached = remaining <= 0;
+  const limitReached = false; // DISABLED FOR TESTING — restore: remaining <= 0
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
