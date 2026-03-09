@@ -70,7 +70,7 @@ export default function AuthForm() {
         <div className="w-8 h-8 rounded-lg bg-[#8B5CF6] flex items-center justify-center">
           <Zap className="w-4 h-4 text-white" />
         </div>
-        <span className="text-xl font-bold text-white">LeadVibe</span>
+        <span className="text-xl font-bold text-white">LeadGen</span>
       </div>
 
       <h2 className="text-2xl font-bold text-white mb-1">

@@ -35,7 +35,7 @@ export default function Home() {
           <div className="w-8 h-8 rounded-lg bg-[#8B5CF6] flex items-center justify-center">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xl font-bold text-white">LeadVibe</span>
+          <span className="text-xl font-bold text-white">LeadGen</span>
         </div>
         <span className="text-sm text-slate-400">B2B Lead Generation</span>
       </nav>
@@ -55,7 +55,7 @@ export default function Home() {
           </h1>
 
           <p className="text-lg text-slate-400 max-w-lg">
-            LeadVibe scanne Google Places pour vous livrer des leads qualifiés
+            LeadGen scanne Google Places pour vous livrer des leads qualifiés
             avec numéro de téléphone et score de confiance. Prospectez plus
             vite, convertissez mieux.
           </p>
