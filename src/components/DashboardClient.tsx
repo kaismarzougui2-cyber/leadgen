@@ -276,7 +276,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
               <p className="text-slate-400 text-sm">CA potentiel estimé</p>
               <p className="text-sm text-slate-500 mt-0.5">{roiLeads} leads × {roiConversion}% conv. × {roiRevenue}€</p>
             </div>
-            <p className="text-3xl font-bold text-[#10B981]">{roiTotal.toLocaleString("fr-FR")}€</p>
+            <p className="text-3xl font-bold text-[#10B981]" suppressHydrationWarning>{roiTotal.toLocaleString("fr-FR")}€</p>
           </div>
         </section>
 
