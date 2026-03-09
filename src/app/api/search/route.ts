@@ -84,8 +84,13 @@ export async function POST(request: NextRequest) {
     )
 
     if (!googleResponse.ok) {
-      console.error('Google Places API error:', await googleResponse.json())
-      return NextResponse.json({ error: 'Erreur lors de la recherche Google Places.' }, { status: 502 })
+      const googleError = await googleResponse.json()
+      console.error('Google Places API error:', googleError)
+      const detail = googleError?.error?.message ?? googleError?.error?.status ?? JSON.stringify(googleError)
+      return NextResponse.json(
+        { error: `Erreur Google Places : ${detail}` },
+        { status: 502 }
+      )
     }
 
     const places = (await googleResponse.json()).places ?? []
