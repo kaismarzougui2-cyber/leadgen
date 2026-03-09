@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedPhoneNumber,places.websiteUri,places.formattedAddress,places.rating',
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.formattedAddress,places.rating',
         },
         body: JSON.stringify({ textQuery: `${job} à ${city}`, languageCode: 'fr' }),
       }
@@ -97,11 +97,11 @@ export async function POST(request: NextRequest) {
     const places = (await googleResponse.json()).places ?? []
 
     const results: SearchResult[] = places
-      .filter((p: GooglePlace) => p.formattedPhoneNumber)
+      .filter((p: GooglePlace) => p.nationalPhoneNumber || p.internationalPhoneNumber)
       .map((p: GooglePlace) => ({
         id: p.id,
         name: p.displayName?.text ?? 'Inconnu',
-        phone: p.formattedPhoneNumber!,
+        phone: p.internationalPhoneNumber ?? p.nationalPhoneNumber!,
         address: p.formattedAddress ?? null,
         rating: p.rating ?? null,
         website: p.websiteUri ?? null,
@@ -145,7 +145,8 @@ function generateMockResults(job: string, city: string): SearchResult[] {
 interface GooglePlace {
   id: string
   displayName?: { text: string }
-  formattedPhoneNumber?: string
+  nationalPhoneNumber?: string
+  internationalPhoneNumber?: string
   formattedAddress?: string
   rating?: number
   websiteUri?: string
