@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
       if (!userId || !subscriptionId) break;
 
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+      const subscription = await getStripe().subscriptions.retrieve(subscriptionId, {
         expand: ["items.data.price"],
       });
       const priceId = subscription.items.data[0]?.price.id;
