@@ -67,7 +67,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   const roiTotal = Math.round((roiLeads * roiConversion) / 100 * roiRevenue);
 
   const remaining = searchesLimit - searchesUsed;
-  const limitReached = false; // DISABLED FOR TESTING — restore: remaining <= 0
+  const limitReached = remaining <= 0;
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -145,7 +145,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   }
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex flex-col">
+    <div className="min-h-screen bg-[#0F172A] flex flex-col pb-20 sm:pb-0">
       {/* Navbar */}
       <nav className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
@@ -167,7 +167,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-slate-400 hidden sm:block">
             <span className={remaining <= 2 ? "text-amber-400 font-medium" : "text-white font-medium"}>
               {searchesUsed}/{searchesLimit}
             </span>{" "}
@@ -195,6 +195,40 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
           </button>
         </div>
       </nav>
+
+      {/* Mobile bottom tab bar */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0F172A] border-t border-white/10 flex">
+        <Link
+          href="/dashboard"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-white bg-white/10"
+        >
+          <Search className="w-5 h-5" />
+          <span className="text-xs font-medium">Recherche</span>
+        </Link>
+        <Link
+          href="/crm"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-slate-400 active:bg-white/5"
+        >
+          <Users className="w-5 h-5" />
+          <span className="text-xs font-medium">Mon CRM</span>
+        </Link>
+        {plan === "free" && (
+          <Link
+            href="/pricing"
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#8B5CF6] active:bg-white/5"
+          >
+            <Zap className="w-5 h-5" />
+            <span className="text-xs font-medium">Upgrader</span>
+          </Link>
+        )}
+        <button
+          onClick={handleLogout}
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-slate-400 active:bg-white/5"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="text-xs font-medium">Déco</span>
+        </button>
+      </div>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10 space-y-10">
         {/* Search Section */}

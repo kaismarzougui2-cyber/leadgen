@@ -97,7 +97,7 @@ export default function CrmClient({
   const countByStatus = (s: Status) => prospects.filter((p) => p.status === s).length;
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex flex-col">
+    <div className="min-h-screen bg-[#0F172A] flex flex-col pb-20 sm:pb-0">
       {/* Navbar */}
       <nav className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
@@ -128,6 +128,31 @@ export default function CrmClient({
           </button>
         </div>
       </nav>
+
+      {/* Mobile bottom tab bar */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0F172A] border-t border-white/10 flex">
+        <Link
+          href="/dashboard"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-slate-400 active:bg-white/5"
+        >
+          <Search className="w-5 h-5" />
+          <span className="text-xs font-medium">Recherche</span>
+        </Link>
+        <Link
+          href="/crm"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-white bg-white/10"
+        >
+          <Users className="w-5 h-5" />
+          <span className="text-xs font-medium">Mon CRM</span>
+        </Link>
+        <button
+          onClick={handleLogout}
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-slate-400 active:bg-white/5"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="text-xs font-medium">Déco</span>
+        </button>
+      </div>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 space-y-8">
         {/* Header */}
