@@ -1,8 +1,47 @@
-import { Zap, Check } from "lucide-react";
+"use client";
+
+import { Zap, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { PLANS } from "@/lib/plans";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function PricingPage() {
+  const [loading, setLoading] = useState<string | null>(null);
+  const router = useRouter();
+
+  async function handleSubscribe(planId: string, priceId: string | null) {
+    if (!priceId) {
+      router.push("/");
+      return;
+    }
+
+    setLoading(planId);
+
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceId }),
+      });
+
+      if (res.status === 401) {
+        // Pas connecté → redirige vers auth
+        router.push("/?redirect=pricing");
+        return;
+      }
+
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      // silencieux
+    } finally {
+      setLoading(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0F172A] flex flex-col">
       {/* Navbar */}
@@ -14,7 +53,7 @@ export default function PricingPage() {
           <span className="text-xl font-bold text-white">LeadGen</span>
         </Link>
         <Link
-          href="/auth"
+          href="/"
           className="text-sm text-slate-400 hover:text-white transition-colors"
         >
           Se connecter
@@ -80,16 +119,21 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              <Link
-                href="/auth"
-                className={`w-full text-center py-3 rounded-xl font-semibold text-sm transition-colors ${
+              <button
+                onClick={() => handleSubscribe(plan.id, plan.stripePriceId)}
+                disabled={loading === plan.id}
+                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-colors disabled:opacity-60 ${
                   plan.highlighted
                     ? "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
                     : "bg-white/10 hover:bg-white/20 text-white"
                 }`}
               >
-                {plan.cta}
-              </Link>
+                {loading === plan.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  plan.cta
+                )}
+              </button>
             </div>
           ))}
         </div>
