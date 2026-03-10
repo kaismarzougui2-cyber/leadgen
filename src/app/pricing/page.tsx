@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 
 export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   async function handleSubscribe(planId: string, priceId: string | null) {
@@ -17,6 +18,7 @@ export default function PricingPage() {
     }
 
     setLoading(planId);
+    setError(null);
 
     try {
       const res = await fetch("/api/stripe/checkout", {
@@ -26,7 +28,6 @@ export default function PricingPage() {
       });
 
       if (res.status === 401) {
-        // Pas connecté → redirige vers auth
         router.push("/?redirect=pricing");
         return;
       }
@@ -34,9 +35,11 @@ export default function PricingPage() {
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        setError(data.error ?? "Une erreur est survenue. Réessayez.");
       }
     } catch {
-      // silencieux
+      setError("Impossible de joindre le serveur. Réessayez.");
     } finally {
       setLoading(null);
     }
@@ -75,6 +78,12 @@ export default function PricingPage() {
             prêt à scaler votre prospection.
           </p>
         </div>
+
+        {error && (
+          <div className="mb-8 p-4 rounded-xl border border-red-500/40 bg-red-500/10 text-red-400 text-sm text-center">
+            {error}
+          </div>
+        )}
 
         {/* Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
