@@ -90,6 +90,13 @@ export default function Home() {
           <AuthForm />
         </div>
       </main>
+
+      <footer className="text-center text-slate-600 text-xs py-6 space-x-4">
+        <span>© 2026 LeadVibe</span>
+        <Link href="/mentions-legales" className="hover:text-slate-400 transition-colors">Mentions légales</Link>
+        <Link href="/cgu" className="hover:text-slate-400 transition-colors">CGU</Link>
+        <Link href="/confidentialite" className="hover:text-slate-400 transition-colors">Confidentialité</Link>
+      </footer>
     </div>
   );
 }
