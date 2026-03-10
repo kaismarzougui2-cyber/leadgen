@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
-  plan TEXT DEFAULT 'free' CHECK (plan IN ('free', 'starter', 'growth', 'pro')),
+  plan TEXT DEFAULT 'free' CHECK (plan IN ('free', 'starter', 'pro')),
+  -- free: 5 recherches | starter: 100 recherches (25€/mois, ~85% marge) | pro: 500 recherches (59€/mois, ~74% marge)
   searches_used INTEGER DEFAULT 0,
   searches_limit INTEGER DEFAULT 5,
   extra_credits INTEGER DEFAULT 0,

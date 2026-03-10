@@ -176,6 +176,15 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
           <span className="inline-flex items-center gap-1 bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6] text-xs font-medium px-2.5 py-1 rounded-full">
             {PLAN_LABELS[plan] ?? plan}
           </span>
+          {plan === "free" && (
+            <Link
+              href="/pricing"
+              className="hidden sm:inline-flex items-center gap-1 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Zap className="w-3 h-3" />
+              Upgrader
+            </Link>
+          )}
           <span className="text-sm text-slate-400 hidden sm:block">{user.email}</span>
           <button
             onClick={handleLogout}
@@ -229,9 +238,17 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
           </form>
 
           {limitReached && (
-            <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 text-sm">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              Quota mensuel atteint. Passez à un plan supérieur pour continuer.
+            <div className="flex items-center justify-between gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 text-sm">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                Quota mensuel atteint. Passez à un plan supérieur pour continuer.
+              </div>
+              <Link
+                href="/pricing"
+                className="shrink-0 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Voir les plans
+              </Link>
             </div>
           )}
 

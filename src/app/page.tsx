@@ -1,4 +1,5 @@
 import AuthForm from "@/components/AuthForm";
+import Link from "next/link";
 import { Zap, Target, TrendingUp, Shield } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,9 @@ export default function Home() {
           </div>
           <span className="text-xl font-bold text-white">LeadGen</span>
         </div>
-        <span className="text-sm text-slate-400">B2B Lead Generation</span>
+        <Link href="/pricing" className="text-sm text-slate-400 hover:text-white transition-colors">
+          Tarifs
+        </Link>
       </nav>
 
       <main className="flex-1 flex flex-col lg:flex-row items-center gap-16 px-6 py-16 max-w-7xl mx-auto w-full">
