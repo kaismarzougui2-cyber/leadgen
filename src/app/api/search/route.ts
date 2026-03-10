@@ -95,7 +95,15 @@ export async function POST(request: NextRequest) {
 
     const places = (await googleResponse.json()).places ?? []
 
-    const results: SearchResult[] = places
+    const RESULTS_LIMIT: Record<string, number> = {
+      free: 5,
+      starter: 5,
+      growth: 20,
+      pro: 60,
+    }
+    const maxResults = RESULTS_LIMIT[sub?.plan ?? 'free'] ?? 5
+
+    const allResults: SearchResult[] = places
       .filter((p: GooglePlace) => p.nationalPhoneNumber || p.internationalPhoneNumber)
       .map((p: GooglePlace) => ({
         id: p.id,
@@ -106,12 +114,15 @@ export async function POST(request: NextRequest) {
         website: p.websiteUri ?? null,
       }))
 
+    const results = allResults.slice(0, maxResults)
+    const truncated = allResults.length > maxResults
+
     await Promise.all([
       supabase.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: results.length }),
       supabase.from('subscriptions').update({ searches_used: (sub?.searches_used ?? 0) + 1, updated_at: new Date().toISOString() }).eq('user_id', user.id),
     ])
 
-    return NextResponse.json({ results, total: results.length })
+    return NextResponse.json({ results, total: allResults.length, truncated, plan: sub?.plan ?? 'free' })
   } catch (error) {
     console.error('Search error:', error)
     return NextResponse.json({ error: 'Erreur interne du serveur.' }, { status: 500 })

@@ -59,6 +59,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   const [isDemo, setIsDemo] = useState(false);
   const [searchesUsed, setSearchesUsed] = useState(initialUsed);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({ loading: false, savedCount: 0, error: null });
+  const [truncated, setTruncated] = useState(false);
 
   // ROI simulator
   const [roiLeads, setRoiLeads] = useState(50);
@@ -77,6 +78,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
     setError(null);
     setResults([]);
     setSaveStatus({ loading: false, savedCount: 0, error: null });
+    setTruncated(false);
 
     try {
       const res = await fetch("/api/search", {
@@ -94,6 +96,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
 
       setResults(data.results);
       setIsDemo(!!data.demo);
+      setTruncated(!!data.truncated);
       setSearched(true);
       setSearchesUsed((prev) => Math.min(prev + 1, searchesLimit));
     } catch {
@@ -341,6 +344,22 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                   <strong>Mode Démo</strong> — Données fictives. Ajoutez{" "}
                   <code className="bg-white/10 px-1 rounded">GOOGLE_PLACES_API_KEY</code> sur Vercel pour des résultats réels.
                 </span>
+              </div>
+            )}
+            {truncated && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-sm text-amber-400">
+                <div className="flex items-center gap-3">
+                  <TrendingUp className="w-4 h-4 shrink-0" />
+                  <span>
+                    <strong>Plan Free — 5 résultats maximum.</strong> Passez au plan Growth ou Pro pour voir jusqu&apos;à 20 ou 60 résultats par recherche.
+                  </span>
+                </div>
+                <Link
+                  href="/pricing"
+                  className="shrink-0 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                >
+                  Voir les plans
+                </Link>
               </div>
             )}
 
