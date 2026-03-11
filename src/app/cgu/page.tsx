@@ -61,7 +61,7 @@ export default function CGUPage() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-xl font-semibold text="white mb-3">6. Responsabilité</h2>
+          <h2 className="text-xl font-semibold text-white mb-3">6. Responsabilité</h2>
           <p className="text-slate-400 leading-relaxed">
             LeadVibe s&apos;efforce d&apos;assurer la disponibilité du service mais ne garantit pas un accès ininterrompu.
             La responsabilité de LeadVibe ne saurait être engagée en cas d&apos;indisponibilité temporaire, de perte de

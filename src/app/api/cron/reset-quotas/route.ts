@@ -14,17 +14,16 @@ export async function GET(request: NextRequest) {
   // Reset subscriptions where period_start is older than 30 days
   const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString()
 
-  const { error, count } = await supabase
+  const { error } = await supabase
     .from('subscriptions')
     .update({ searches_used: 0, period_start: new Date().toISOString(), updated_at: new Date().toISOString() })
     .lt('period_start', cutoff)
     .gt('searches_used', 0)
-    .select('id', { count: 'exact', head: true })
 
   if (error) {
     console.error('Quota reset error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, reset: count })
+  return NextResponse.json({ ok: true })
 }
