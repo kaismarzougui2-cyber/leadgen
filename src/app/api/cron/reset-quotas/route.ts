@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-// Called by Vercel Cron on the 1st of each month at 00:00 UTC
-// Configure in vercel.json: { "crons": [{ "path": "/api/cron/reset-quotas", "schedule": "0 0 1 * *" }] }
+// Safety net cron: resets quotas for inactive users who never trigger the inline check.
+// Runs daily. The primary reset happens inline in /api/search when 30 days have passed.
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -11,10 +11,14 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient()
 
+  // Reset subscriptions where period_start is older than 30 days
+  const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString()
+
   const { error, count } = await supabase
     .from('subscriptions')
-    .update({ searches_used: 0, updated_at: new Date().toISOString() })
-    .neq('searches_used', 0) // skip rows already at 0
+    .update({ searches_used: 0, period_start: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .lt('period_start', cutoff)
+    .gt('searches_used', 0)
     .select('id', { count: 'exact', head: true })
 
   if (error) {
@@ -22,6 +26,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  console.log(`Quota reset: ${count} subscriptions reset`)
   return NextResponse.json({ ok: true, reset: count })
 }

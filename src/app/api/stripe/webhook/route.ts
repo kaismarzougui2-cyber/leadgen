@@ -50,13 +50,16 @@ export async function POST(req: NextRequest) {
       const priceId = subscription.items.data[0]?.price.id;
       const planInfo = PLAN_LIMITS[priceId] ?? { plan: "free", limit: 5 };
 
+      const now = new Date().toISOString()
       await supabaseAdmin
         .from("subscriptions")
         .update({
           plan: planInfo.plan,
           searches_limit: planInfo.limit,
+          searches_used: 0,
+          period_start: now,
           stripe_subscription_id: subscriptionId,
-          updated_at: new Date().toISOString(),
+          updated_at: now,
         })
         .eq("user_id", userId);
 

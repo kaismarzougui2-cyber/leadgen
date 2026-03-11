@@ -22,24 +22,39 @@ export async function POST(request: NextRequest) {
     // Quota check via subscriptions table
     let { data: sub } = await supabase
       .from('subscriptions')
-      .select('id, plan, searches_used, searches_limit, extra_credits')
+      .select('id, plan, searches_used, searches_limit, extra_credits, period_start')
       .eq('user_id', user.id)
       .single()
 
     // Fallback for existing users without a subscription row
     if (!sub) {
+      const now = new Date().toISOString()
       await supabase.from('subscriptions').insert({
         user_id: user.id,
         plan: 'free',
         searches_limit: 5,
         searches_used: 0,
+        period_start: now,
       })
       const { data: newSub } = await supabase
         .from('subscriptions')
-        .select('id, plan, searches_used, searches_limit, extra_credits')
+        .select('id, plan, searches_used, searches_limit, extra_credits, period_start')
         .eq('user_id', user.id)
         .single()
       sub = newSub
+    }
+
+    // Auto-reset if 30 days have passed since period_start
+    if (sub?.period_start) {
+      const daysSince = (Date.now() - new Date(sub.period_start).getTime()) / 86_400_000
+      if (daysSince >= 30) {
+        const now = new Date().toISOString()
+        await supabase
+          .from('subscriptions')
+          .update({ searches_used: 0, period_start: now, updated_at: now })
+          .eq('user_id', user.id)
+        sub = { ...sub, searches_used: 0, period_start: now }
+      }
     }
 
     if (sub) {
@@ -47,7 +62,7 @@ export async function POST(request: NextRequest) {
       if (sub.searches_used >= totalAllowed) {
         return NextResponse.json(
           {
-            error: `Quota mensuel atteint (${sub.searches_used}/${totalAllowed} recherches). Passez à un plan supérieur ou achetez des crédits.`,
+            error: `Quota de 30 jours atteint (${sub.searches_used}/${totalAllowed} recherches). Passez à un plan supérieur ou achetez des crédits.`,
             limitReached: true,
             plan: sub.plan,
             searchesUsed: sub.searches_used,
