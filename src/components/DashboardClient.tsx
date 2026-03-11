@@ -64,6 +64,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   const [searchesUsed, setSearchesUsed] = useState(initialUsed);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({ loading: false, savedCount: 0, error: null });
   const [truncated, setTruncated] = useState(false);
+  const [hiddenCount, setHiddenCount] = useState(0);
 
   // ROI simulator
   const [roiLeads, setRoiLeads] = useState(50);
@@ -83,13 +84,26 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
     setResults([]);
     setSaveStatus({ loading: false, savedCount: 0, error: null });
     setTruncated(false);
+    setHiddenCount(0);
 
     try {
-      const res = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job: job.trim(), city: city.trim() }),
-      });
+      const supabase = createClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      // Fetch already-saved place IDs in parallel with the search
+      const [res, savedRes] = await Promise.all([
+        fetch("/api/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ job: job.trim(), city: city.trim() }),
+        }),
+        authUser
+          ? supabase
+              .from("prospects")
+              .select("google_place_id, phone")
+              .eq("user_id", authUser.id)
+          : Promise.resolve({ data: [] }),
+      ]);
 
       const data = await res.json();
 
@@ -98,7 +112,26 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         return;
       }
 
-      setResults(data.results);
+      // Build a set of already-saved identifiers
+      const savedIds = new Set<string>();
+      const savedPhones = new Set<string>();
+      if (savedRes && "data" in savedRes && savedRes.data) {
+        for (const p of savedRes.data) {
+          if (p.google_place_id) savedIds.add(p.google_place_id);
+          if (p.phone) savedPhones.add(p.phone);
+        }
+      }
+
+      // Filter out duplicates
+      const allResults: SearchResult[] = data.results;
+      const fresh = allResults.filter((r) => {
+        if (!r.id.startsWith("demo-") && savedIds.has(r.id)) return false;
+        if (r.phone && savedPhones.has(r.phone)) return false;
+        return true;
+      });
+
+      setHiddenCount(allResults.length - fresh.length);
+      setResults(fresh);
       setIsDemo(!!data.demo);
       setTruncated(!!data.truncated);
       setSearched(true);
@@ -372,8 +405,14 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
             )}
 
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex items-center gap-3">
                 <h2 className="text-xl font-bold text-white">Résultats ({results.length})</h2>
+                {hiddenCount > 0 && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6] px-2.5 py-1 rounded-full">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    {hiddenCount} déjà dans votre CRM
+                  </span>
+                )}
               </div>
               {results.length > 0 && (
                 <div className="flex items-center gap-3">
