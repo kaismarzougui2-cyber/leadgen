@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { enrichWithInsee } from '@/lib/insee'
+import { PLAN_LIMITS, type PlanId } from '@/lib/plans'
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,7 +60,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (sub) {
-      const totalAllowed = sub.searches_limit + (sub.extra_credits ?? 0)
+      const planLimit = PLAN_LIMITS[(sub.plan as PlanId) ?? 'free'] ?? 5
+      const totalAllowed = planLimit + (sub.extra_credits ?? 0)
       if (sub.searches_used >= totalAllowed) {
         return NextResponse.json(
           {
