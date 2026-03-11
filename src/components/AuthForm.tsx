@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, Mail, Lock, Zap } from "lucide-react";
+import Link from "next/link";
 
 type Mode = "login" | "signup";
 
@@ -134,7 +135,14 @@ export default function AuthForm() {
         </div>
 
         <div>
-          <label className="block text-sm text-slate-300 mb-1.5">Mot de passe</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-sm text-slate-300">Mot de passe</label>
+            {mode === "login" && (
+              <Link href="/auth/forgot-password" className="text-xs text-[#8B5CF6] hover:underline">
+                Mot de passe oublié ?
+              </Link>
+            )}
+          </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
