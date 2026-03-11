@@ -78,7 +78,7 @@ export default function CustomCursor() {
         {/* Arrow shape — same asymmetric silhouette as Figma's multiplayer cursor */}
         <path
           d="M2 2L2 22L7.5 16.5L11.5 26L14.5 24.8L10.5 15L18 15L2 2Z"
-          fill="#8B5CF6"
+          fill="black"
           stroke="white"
           strokeWidth="2.2"
           strokeLinejoin="round"
@@ -86,27 +86,6 @@ export default function CustomCursor() {
         />
       </svg>
 
-      {/* Label badge — anchored bottom-right of the arrow tip */}
-      <div
-        style={{
-          position: "absolute",
-          top: "22px",
-          left: "16px",
-          backgroundColor: "#8B5CF6",
-          color: "white",
-          fontSize: "11px",
-          fontWeight: 600,
-          lineHeight: 1,
-          padding: "3px 7px",
-          borderRadius: "0 6px 6px 6px",
-          whiteSpace: "nowrap",
-          fontFamily: "Inter, system-ui, sans-serif",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.35)",
-          userSelect: "none",
-        }}
-      >
-        Toi
-      </div>
     </div>
   );
 }
