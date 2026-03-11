@@ -27,6 +27,10 @@ interface SearchResult {
   address: string | null;
   rating: number | null;
   website: string | null;
+  siren?: string | null;
+  siret?: string | null;
+  naf_code?: string | null;
+  naf_label?: string | null;
 }
 
 interface SaveStatus {
@@ -127,6 +131,10 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
       google_place_id: r.id.startsWith("demo-") ? null : r.id,
       website: r.website,
       status: "À appeler",
+      siren: r.siren ?? null,
+      siret: r.siret ?? null,
+      naf_code: r.naf_code ?? null,
+      naf_label: r.naf_label ?? null,
     }));
 
     const { error: insertError, data: inserted } = await supabase
@@ -453,6 +461,17 @@ function LeadCard({ result }: { result: SearchResult }) {
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <Globe className="w-3.5 h-3.5 shrink-0" />
           <span>Pas de site web</span>
+        </div>
+      )}
+
+      {result.siren && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full font-mono">
+            SIREN {result.siren}
+          </span>
+          {result.naf_label && (
+            <span className="text-xs text-slate-500 truncate">{result.naf_label}</span>
+          )}
         </div>
       )}
     </div>

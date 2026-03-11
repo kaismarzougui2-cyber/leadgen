@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { enrichWithInsee } from '@/lib/insee'
 
 export async function POST(request: NextRequest) {
   try {
@@ -129,8 +130,20 @@ export async function POST(request: NextRequest) {
         website: p.websiteUri ?? null,
       }))
 
-    const results = allResults.slice(0, maxResults)
+    const sliced = allResults.slice(0, maxResults)
     const truncated = allResults.length > maxResults
+
+    // Enrich with INSEE SIRENE data (non-blocking, capped at 20 to avoid rate limits)
+    const toEnrich = sliced.slice(0, 20)
+    const inseeSettled = process.env.INSEE_API_TOKEN
+      ? await Promise.allSettled(toEnrich.map((r) => enrichWithInsee(r.name, r.address)))
+      : []
+
+    const results: SearchResult[] = sliced.map((r, i) => {
+      const settlement = inseeSettled[i]
+      const insee = settlement?.status === 'fulfilled' ? settlement.value : null
+      return insee ? { ...r, siren: insee.siren, siret: insee.siret, naf_code: insee.naf_code, naf_label: insee.naf_label } : r
+    })
 
     await Promise.all([
       supabase.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: results.length }),
@@ -184,4 +197,8 @@ export interface SearchResult {
   address: string | null
   rating: number | null
   website: string | null
+  siren?: string | null
+  siret?: string | null
+  naf_code?: string | null
+  naf_label?: string | null
 }

@@ -39,6 +39,8 @@ interface Prospect {
   status: Status;
   note: string;
   created_at: string;
+  siren?: string | null;
+  naf_label?: string | null;
 }
 
 const STATUS_COLORS: Record<Status, string> = {
@@ -306,6 +308,12 @@ function ProspectRow({
                 <Globe className="w-3.5 h-3.5 text-[#10B981]" />
                 {prospect.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
               </a>
+            )}
+            {prospect.siren && (
+              <span className="flex items-center gap-1.5 font-mono text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                {prospect.siren}
+                {prospect.naf_label && ` · ${prospect.naf_label}`}
+              </span>
             )}
           </div>
 
