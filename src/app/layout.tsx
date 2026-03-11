@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import CustomCursor from "@/components/ui/CustomCursor";
 
 export const metadata: Metadata = {
   title: "LeadGen – Trouvez vos prospects B2B",
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className="bg-[#0F172A] text-white antialiased font-sans">
+        <CustomCursor />
         {children}
       </body>
     </html>

@@ -12,6 +12,13 @@ body {
   color: var(--foreground);
 }
 
+/* Hide OS cursor on non-touch devices — CustomCursor renders its own */
+@media (pointer: fine) {
+  *, *::before, *::after {
+    cursor: none !important;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
