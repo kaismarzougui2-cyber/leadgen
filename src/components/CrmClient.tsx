@@ -13,6 +13,8 @@ import {
   FileText,
   Trash2,
   Globe,
+  Download,
+  Settings,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -61,11 +63,38 @@ export default function CrmClient({
 }) {
   const [prospects, setProspects] = useState<Prospect[]>(initialProspects);
   const [filterStatus, setFilterStatus] = useState<Status | "Tous">("Tous");
+  const [filterNoWebsite, setFilterNoWebsite] = useState(false);
   const [search, setSearch] = useState("");
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [noteValues, setNoteValues] = useState<Record<string, string>>({});
 
   const supabase = createClient();
+
+  function exportCSV() {
+    const headers = ["Nom", "Téléphone", "Adresse", "Note Google", "Site web", "Statut", "SIREN", "Activité", "Commentaire", "Date d'ajout"];
+    const rows = filtered.map((p) => [
+      p.name,
+      p.phone,
+      p.address ?? "",
+      p.rating ?? "",
+      p.website ?? "",
+      p.status,
+      p.siren ?? "",
+      p.naf_label ?? "",
+      p.note,
+      new Date(p.created_at).toLocaleDateString("fr-FR"),
+    ]);
+    const csv = [headers, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"))
+      .join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leadvibe-prospects-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -93,7 +122,8 @@ export default function CrmClient({
     const matchStatus = filterStatus === "Tous" || p.status === filterStatus;
     const q = search.toLowerCase();
     const matchSearch = !q || p.name.toLowerCase().includes(q) || p.phone.includes(q) || (p.address ?? "").toLowerCase().includes(q);
-    return matchStatus && matchSearch;
+    const matchNoWebsite = !filterNoWebsite || !p.website;
+    return matchStatus && matchSearch && matchNoWebsite;
   });
 
   const countByStatus = (s: Status) => prospects.filter((p) => p.status === s).length;
@@ -121,6 +151,10 @@ export default function CrmClient({
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-slate-400 hidden sm:block">{userEmail}</span>
+          <Link href="/account" className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors">
+            <Settings className="w-4 h-4" />
+            <span className="hidden sm:block">Compte</span>
+          </Link>
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
@@ -163,13 +197,24 @@ export default function CrmClient({
             <h1 className="text-3xl font-bold text-white">Mon CRM</h1>
             <p className="text-slate-400 mt-1">{prospects.length} prospect{prospects.length !== 1 ? "s" : ""} sauvegardé{prospects.length !== 1 ? "s" : ""}</p>
           </div>
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm"
-          >
-            <Search className="w-4 h-4" />
-            Nouvelle recherche
-          </Link>
+          <div className="flex items-center gap-3">
+            {prospects.length > 0 && (
+              <button
+                onClick={exportCSV}
+                className="flex items-center gap-2 bg-[#1E293B] hover:bg-white/10 border border-white/10 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:block">Exporter CSV</span>
+              </button>
+            )}
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm"
+            >
+              <Search className="w-4 h-4" />
+              <span className="hidden sm:block">Nouvelle recherche</span>
+            </Link>
+          </div>
         </div>
 
         {/* Status summary cards */}
@@ -191,8 +236,8 @@ export default function CrmClient({
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
               type="text"
@@ -212,6 +257,17 @@ export default function CrmClient({
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          <button
+            onClick={() => setFilterNoWebsite((v) => !v)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+              filterNoWebsite
+                ? "bg-[#8B5CF6]/20 border-[#8B5CF6]/50 text-[#8B5CF6]"
+                : "bg-[#1E293B] border-white/10 text-slate-400 hover:text-white"
+            }`}
+          >
+            <Globe className="w-4 h-4" />
+            Sans site web
+          </button>
         </div>
 
         {/* Table */}

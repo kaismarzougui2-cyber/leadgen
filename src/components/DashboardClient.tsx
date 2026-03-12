@@ -16,6 +16,8 @@ import {
   X,
   Users,
   AlertTriangle,
+  Settings,
+  Lightbulb,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -75,6 +77,35 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
 
   const remaining = searchesLimit - searchesUsed;
   const limitReached = remaining <= 0;
+
+  const allSaved = results.length > 0 && results.every((r) => r.alreadySaved);
+
+  function getSuggestions(): { label: string; job: string; city: string }[] {
+    if (!job || !city) return [];
+    const synonymes: Record<string, string[]> = {
+      plombier: ["plomberie", "chauffagiste", "sanitaire"],
+      electricien: ["électricité", "électricien industriel", "domotique"],
+      menuisier: ["menuiserie", "charpentier", "ébéniste"],
+      peintre: ["peinture bâtiment", "décorateur", "revêtement sol"],
+      maçon: ["maçonnerie", "carreleur", "façadier"],
+      serrurier: ["serrurerie", "métallerie", "sécurité porte"],
+      coiffeur: ["salon de coiffure", "barbier", "esthéticienne"],
+      boulanger: ["boulangerie", "pâtissier", "artisan boulanger"],
+      comptable: ["expert comptable", "cabinet comptable", "gestion paie"],
+      avocat: ["cabinet avocat", "juriste", "notaire"],
+      médecin: ["cabinet médical", "généraliste", "médecin de garde"],
+      restaurant: ["brasserie", "pizzeria", "traiteur"],
+      garage: ["mécanicien auto", "carrossier", "auto-école"],
+      agent: ["agence immobilière", "promoteur immobilier", "syndic"],
+    };
+    const jobLower = job.toLowerCase();
+    const altJobs = Object.entries(synonymes).find(([k]) => jobLower.includes(k))?.[1] ?? [];
+    const suggestions: { label: string; job: string; city: string }[] = [];
+    altJobs.slice(0, 2).forEach((alt) => suggestions.push({ label: `${alt} à ${city}`, job: alt, city }));
+    suggestions.push({ label: `${job} dans ${city} centre`, job, city: `${city} centre` });
+    suggestions.push({ label: `${job} près de ${city}`, job, city: `près de ${city}` });
+    return suggestions.slice(0, 3);
+  }
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -232,6 +263,10 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
             </Link>
           )}
           <span className="text-sm text-slate-400 hidden sm:block">{user.email}</span>
+          <Link href="/account" className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors">
+            <Settings className="w-4 h-4" />
+            <span className="hidden sm:block">Compte</span>
+          </Link>
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
@@ -415,9 +450,9 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                     {hiddenCount} déjà dans votre CRM
                   </span>
                 )}
-                {results.length > 0 && results.every((r) => r.alreadySaved) && (
+                {allSaved && (
                   <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-amber-500/10 border border-amber-500/30 text-amber-400 px-2.5 py-1 rounded-full">
-                    Tous déjà sauvegardés — essayez une autre ville
+                    Tous déjà dans le CRM
                   </span>
                 )}
               </div>
@@ -453,11 +488,34 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                 <p className="text-sm mt-1">Essayez avec un autre métier ou une autre ville.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {results.map((result) => (
-                  <LeadCard key={result.id} result={result} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {results.map((result) => (
+                    <LeadCard key={result.id} result={result} />
+                  ))}
+                </div>
+
+                {allSaved && getSuggestions().length > 0 && (
+                  <div className="p-5 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-3">
+                    <div className="flex items-center gap-2 text-amber-400 text-sm font-medium">
+                      <Lightbulb className="w-4 h-4" />
+                      Tous ces prospects sont déjà dans votre CRM. Essayez ces variantes pour trouver de nouveaux leads :
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {getSuggestions().map((s) => (
+                        <button
+                          key={s.label}
+                          onClick={() => { setJob(s.job); setCity(s.city); }}
+                          className="inline-flex items-center gap-1.5 bg-[#1E293B] hover:bg-white/10 border border-white/10 text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          <Search className="w-3.5 h-3.5 text-slate-400" />
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </section>
         )}
