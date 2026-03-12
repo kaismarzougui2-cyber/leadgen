@@ -31,6 +31,7 @@ interface SearchResult {
   siret?: string | null;
   naf_code?: string | null;
   naf_label?: string | null;
+  alreadySaved?: boolean;
 }
 
 interface SaveStatus {
@@ -122,16 +123,17 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         }
       }
 
-      // Filter out duplicates
-      const allResults: SearchResult[] = data.results;
-      const fresh = allResults.filter((r) => {
-        if (!r.id.startsWith("demo-") && savedIds.has(r.id)) return false;
-        if (r.phone && savedPhones.has(r.phone)) return false;
-        return true;
-      });
+      // Mark duplicates instead of hiding them
+      const allResults: SearchResult[] = data.results.map((r: SearchResult) => ({
+        ...r,
+        alreadySaved:
+          (!r.id.startsWith("demo-") && savedIds.has(r.id)) ||
+          !!(r.phone && savedPhones.has(r.phone)),
+      }));
+      const hiddenDuplicates = allResults.filter((r) => r.alreadySaved).length;
 
-      setHiddenCount(allResults.length - fresh.length);
-      setResults(fresh);
+      setHiddenCount(hiddenDuplicates);
+      setResults(allResults);
       setIsDemo(!!data.demo);
       setTruncated(!!data.truncated);
       setSearched(true);
@@ -155,7 +157,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
       return;
     }
 
-    const prospects = results.map((r) => ({
+    const prospects = results.filter((r) => !r.alreadySaved).map((r) => ({
       user_id: authUser.id,
       name: r.name,
       phone: r.phone,
@@ -413,6 +415,11 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                     {hiddenCount} déjà dans votre CRM
                   </span>
                 )}
+                {results.length > 0 && results.every((r) => r.alreadySaved) && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-amber-500/10 border border-amber-500/30 text-amber-400 px-2.5 py-1 rounded-full">
+                    Tous déjà sauvegardés — essayez une autre ville
+                  </span>
+                )}
               </div>
               {results.length > 0 && (
                 <div className="flex items-center gap-3">
@@ -461,8 +468,15 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
 
 function LeadCard({ result }: { result: SearchResult }) {
   return (
-    <div className="bg-[#1E293B] border border-white/10 rounded-xl p-5 hover:border-white/20 transition-colors flex flex-col gap-2.5">
-      <h3 className="font-semibold text-white text-sm line-clamp-2">{result.name}</h3>
+    <div className={`bg-[#1E293B] border rounded-xl p-5 transition-colors flex flex-col gap-2.5 ${result.alreadySaved ? "border-white/5 opacity-50" : "border-white/10 hover:border-white/20"}`}>
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="font-semibold text-white text-sm line-clamp-2">{result.name}</h3>
+        {result.alreadySaved && (
+          <span className="shrink-0 inline-flex items-center gap-1 text-xs font-medium bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6] px-2 py-0.5 rounded-full">
+            <CheckCircle className="w-3 h-3" /> CRM
+          </span>
+        )}
+      </div>
 
       <div className="flex items-center gap-2 text-sm text-slate-300">
         <Phone className="w-3.5 h-3.5 text-[#8B5CF6] shrink-0" />
