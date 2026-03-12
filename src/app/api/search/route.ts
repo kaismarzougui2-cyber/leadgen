@@ -5,13 +5,22 @@ import { PLAN_LIMITS, type PlanId } from '@/lib/plans'
 
 export async function POST(request: NextRequest) {
   try {
-    const { job, city } = await request.json()
+    const body = await request.json()
+
+    // Sanitize and cap input length to prevent abuse
+    const job = typeof body.job === 'string' ? body.job.trim().slice(0, 100) : ''
+    const city = typeof body.city === 'string' ? body.city.trim().slice(0, 100) : ''
 
     if (!job || !city) {
       return NextResponse.json(
         { error: 'Les champs "job" et "city" sont requis.' },
         { status: 400 }
       )
+    }
+
+    // Block clearly abusive payloads
+    if (job.length < 2 || city.length < 2) {
+      return NextResponse.json({ error: 'Requête trop courte.' }, { status: 400 })
     }
 
     const supabase = await createClient()
@@ -59,32 +68,48 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (sub) {
-      const planLimit = PLAN_LIMITS[(sub.plan as PlanId) ?? 'free'] ?? 5
-      const totalAllowed = planLimit + (sub.extra_credits ?? 0)
-      if (sub.searches_used >= totalAllowed) {
-        return NextResponse.json(
-          {
-            error: `Quota de 30 jours atteint (${sub.searches_used}/${totalAllowed} recherches). Passez à un plan supérieur ou achetez des crédits.`,
-            limitReached: true,
-            plan: sub.plan,
-            searchesUsed: sub.searches_used,
-            searchesLimit: totalAllowed,
-          },
-          { status: 429 }
-        )
-      }
+    if (!sub) {
+      return NextResponse.json({ error: 'Abonnement introuvable.' }, { status: 500 })
     }
+
+    const planLimit = PLAN_LIMITS[(sub.plan as PlanId) ?? 'free'] ?? 5
+    const totalAllowed = planLimit + (sub.extra_credits ?? 0)
+
+    // ── Atomic quota increment ────────────────────────────────────────────────
+    // We do a conditional UPDATE that only fires if searches_used < totalAllowed.
+    // This prevents race conditions: concurrent requests cannot both pass the
+    // quota check, because only one UPDATE will match the row.
+    // If 0 rows are returned, quota was already reached (or a concurrent request
+    // consumed the last slot a millisecond before us).
+    const now = new Date().toISOString()
+    const { data: incremented } = await supabase
+      .from('subscriptions')
+      .update({ searches_used: sub.searches_used + 1, updated_at: now })
+      .eq('user_id', user.id)
+      .eq('searches_used', sub.searches_used) // optimistic lock: only if unchanged
+      .lt('searches_used', totalAllowed)       // hard cap
+      .select('searches_used')
+
+    if (!incremented || incremented.length === 0) {
+      return NextResponse.json(
+        {
+          error: `Quota de 30 jours atteint (${sub.searches_used}/${totalAllowed} recherches). Passez à un plan supérieur.`,
+          limitReached: true,
+          plan: sub.plan,
+          searchesUsed: sub.searches_used,
+          searchesLimit: totalAllowed,
+        },
+        { status: 429 }
+      )
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     const apiKey = process.env.GOOGLE_PLACES_API_KEY
 
     // Demo mode
     if (!apiKey) {
       const mockResults = generateMockResults(job, city)
-      await Promise.all([
-        supabase.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: mockResults.length }),
-        supabase.from('subscriptions').update({ searches_used: (sub?.searches_used ?? 0) + 1, updated_at: new Date().toISOString() }).eq('user_id', user.id),
-      ])
+      await supabase.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: mockResults.length })
       return NextResponse.json({ results: mockResults, total: mockResults.length, demo: true })
     }
 
@@ -147,10 +172,7 @@ export async function POST(request: NextRequest) {
       return insee ? { ...r, siren: insee.siren, siret: insee.siret, naf_code: insee.naf_code, naf_label: insee.naf_label } : r
     })
 
-    await Promise.all([
-      supabase.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: results.length }),
-      supabase.from('subscriptions').update({ searches_used: (sub?.searches_used ?? 0) + 1, updated_at: new Date().toISOString() }).eq('user_id', user.id),
-    ])
+    await supabase.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: results.length })
 
     return NextResponse.json({ results, total: allResults.length, truncated, plan: sub?.plan ?? 'free' })
   } catch (error) {

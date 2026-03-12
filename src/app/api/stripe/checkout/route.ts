@@ -12,8 +12,14 @@ export async function POST(req: NextRequest) {
 
   const { priceId } = await req.json();
 
-  if (!priceId) {
-    return NextResponse.json({ error: "priceId manquant" }, { status: 400 });
+  // Whitelist: only accept known price IDs to prevent arbitrary Stripe calls
+  const allowedPriceIds = [
+    process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
+    process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
+  ].filter(Boolean);
+
+  if (!priceId || !allowedPriceIds.includes(priceId)) {
+    return NextResponse.json({ error: "Plan invalide." }, { status: 400 });
   }
 
   // Récupère ou crée le customer Stripe
