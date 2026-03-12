@@ -154,13 +154,15 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         }
       }
 
-      // Mark duplicates instead of hiding them
-      const allResults: SearchResult[] = data.results.map((r: SearchResult) => ({
-        ...r,
-        alreadySaved:
-          (!r.id.startsWith("demo-") && savedIds.has(r.id)) ||
-          !!(r.phone && savedPhones.has(r.phone)),
-      }));
+      // Mark duplicates then sort: new leads first, already-saved last
+      const allResults: SearchResult[] = data.results
+        .map((r: SearchResult) => ({
+          ...r,
+          alreadySaved:
+            (!r.id.startsWith("demo-") && savedIds.has(r.id)) ||
+            !!(r.phone && savedPhones.has(r.phone)),
+        }))
+        .sort((a: SearchResult, b: SearchResult) => Number(a.alreadySaved) - Number(b.alreadySaved));
       const hiddenDuplicates = allResults.filter((r) => r.alreadySaved).length;
 
       setHiddenCount(hiddenDuplicates);
