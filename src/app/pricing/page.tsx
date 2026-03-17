@@ -28,7 +28,7 @@ export default function PricingPage() {
       });
 
       if (res.status === 401) {
-        router.push("/?redirect=pricing");
+        router.push(`/signup?redirect=pricing`);
         return;
       }
 
