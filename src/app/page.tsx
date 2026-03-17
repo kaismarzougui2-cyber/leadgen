@@ -27,7 +27,13 @@ const features = [
   },
 ];
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string }>;
+}) {
+  const { redirect } = await searchParams;
+  const redirectTo = redirect ?? "/dashboard";
   return (
     <div className="min-h-screen bg-[#0F172A] flex flex-col">
       {/* Navbar */}
@@ -56,6 +62,17 @@ export default function Home() {
             <span className="text-[#8B5CF6]">prospects B2B</span>{" "}
             en quelques secondes
           </h1>
+
+          {/* Bouton visible uniquement sur mobile, en dessous du titre */}
+          <div className="lg:hidden">
+            <a
+              href="#auth"
+              className="inline-flex items-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
+            >
+              <Zap className="w-4 h-4" />
+              Essayer maintenant
+            </a>
+          </div>
 
           <p className="text-lg text-slate-400 max-w-lg">
             LeadGen scanne Google Places pour vous livrer des leads qualifiés
@@ -86,8 +103,8 @@ export default function Home() {
         </div>
 
         {/* Right – Auth Form */}
-        <div className="w-full lg:w-[420px] shrink-0">
-          <AuthForm />
+        <div id="auth" className="w-full lg:w-[420px] shrink-0">
+          <AuthForm redirectTo={redirectTo} />
         </div>
       </main>
 

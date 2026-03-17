@@ -7,7 +7,7 @@ import Link from "next/link";
 
 type Mode = "login" | "signup";
 
-export default function AuthForm() {
+export default function AuthForm({ redirectTo = "/dashboard" }: { redirectTo?: string }) {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +37,7 @@ export default function AuthForm() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        window.location.href = "/dashboard";
+        window.location.href = redirectTo;
       }
     } catch (err: unknown) {
       setMessage({
@@ -52,10 +52,11 @@ export default function AuthForm() {
   async function handleGoogleLogin() {
     setLoading(true);
     const supabase = createClient();
+    const next = redirectTo !== "/dashboard" ? `?next=${encodeURIComponent(redirectTo)}` : "";
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback${next}`,
       },
     });
     if (error) {
