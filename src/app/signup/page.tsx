@@ -8,7 +8,9 @@ import { useSearchParams } from "next/navigation";
 
 function SignupForm() {
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") ?? "/dashboard";
+  const priceId = searchParams.get("priceId");
+  // Si un priceId est fourni, après confirmation email → auto-checkout direct
+  const redirectTo = priceId ? `/go/${priceId}` : (searchParams.get("redirect") ?? "/dashboard");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
