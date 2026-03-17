@@ -43,6 +43,8 @@ interface Prospect {
   created_at: string;
   siren?: string | null;
   naf_label?: string | null;
+  query_city?: string | null;
+  query_job?: string | null;
 }
 
 const STATUS_COLORS: Record<Status, string> = {
@@ -64,6 +66,8 @@ export default function CrmClient({
   const [prospects, setProspects] = useState<Prospect[]>(initialProspects);
   const [filterStatus, setFilterStatus] = useState<Status | "Tous">("Tous");
   const [filterNoWebsite, setFilterNoWebsite] = useState(false);
+  const [filterCity, setFilterCity] = useState("");
+  const [filterJob, setFilterJob] = useState("");
   const [search, setSearch] = useState("");
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [noteValues, setNoteValues] = useState<Record<string, string>>({});
@@ -118,12 +122,17 @@ export default function CrmClient({
     await supabase.from("prospects").delete().eq("id", id);
   }
 
+  const uniqueCities = Array.from(new Set(prospects.map((p) => p.query_city).filter(Boolean))) as string[];
+  const uniqueJobs = Array.from(new Set(prospects.map((p) => p.query_job).filter(Boolean))) as string[];
+
   const filtered = prospects.filter((p) => {
     const matchStatus = filterStatus === "Tous" || p.status === filterStatus;
     const q = search.toLowerCase();
     const matchSearch = !q || p.name.toLowerCase().includes(q) || p.phone.includes(q) || (p.address ?? "").toLowerCase().includes(q);
     const matchNoWebsite = !filterNoWebsite || !p.website;
-    return matchStatus && matchSearch && matchNoWebsite;
+    const matchCity = !filterCity || p.query_city === filterCity;
+    const matchJob = !filterJob || p.query_job === filterJob;
+    return matchStatus && matchSearch && matchNoWebsite && matchCity && matchJob;
   });
 
   const countByStatus = (s: Status) => prospects.filter((p) => p.status === s).length;
@@ -257,6 +266,30 @@ export default function CrmClient({
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          {uniqueCities.length > 0 && (
+            <select
+              value={filterCity}
+              onChange={(e) => setFilterCity(e.target.value)}
+              className="bg-[#1E293B] border border-white/10 rounded-xl text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#8B5CF6]"
+            >
+              <option value="">Toutes les villes</option>
+              {uniqueCities.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          )}
+          {uniqueJobs.length > 0 && (
+            <select
+              value={filterJob}
+              onChange={(e) => setFilterJob(e.target.value)}
+              className="bg-[#1E293B] border border-white/10 rounded-xl text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#8B5CF6]"
+            >
+              <option value="">Tous les métiers</option>
+              {uniqueJobs.map((j) => (
+                <option key={j} value={j}>{j}</option>
+              ))}
+            </select>
+          )}
           <button
             onClick={() => setFilterNoWebsite((v) => !v)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${

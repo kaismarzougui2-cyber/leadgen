@@ -4,6 +4,7 @@ export interface Plan {
   id: PlanId;
   name: string;
   price: number; // € / mois
+  promoPrice?: number; // € / 1er mois pour nouveaux utilisateurs
   searches: number; // recherches / mois
   features: string[];
   cta: string;
@@ -31,6 +32,7 @@ export const PLANS: Plan[] = [
     id: "starter",
     name: "Starter",
     price: 25,
+    promoPrice: 12,
     searches: 100,
     features: [
       "100 recherches / mois",
@@ -39,7 +41,7 @@ export const PLANS: Plan[] = [
       "Simulateur ROI",
       "Support prioritaire",
     ],
-    cta: "Démarrer à 25€/mois",
+    cta: "Démarrer — 1er mois à 12€",
     highlighted: true,
     stripePriceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID ?? null,
   },

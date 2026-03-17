@@ -107,13 +107,25 @@ export default function PricingPage() {
                   {plan.name}
                 </h2>
                 <div className="flex items-end gap-1">
-                  <span className="text-4xl font-bold text-white">
-                    {plan.price === 0 ? "Gratuit" : `${plan.price}€`}
-                  </span>
+                  {plan.promoPrice ? (
+                    <>
+                      <span className="text-4xl font-bold text-white">{plan.promoPrice}€</span>
+                      <span className="text-slate-400 mb-1 line-through text-sm ml-1">{plan.price}€</span>
+                    </>
+                  ) : (
+                    <span className="text-4xl font-bold text-white">
+                      {plan.price === 0 ? "Gratuit" : `${plan.price}€`}
+                    </span>
+                  )}
                   {plan.price > 0 && (
                     <span className="text-slate-400 mb-1">/mois</span>
                   )}
                 </div>
+                {plan.promoPrice && (
+                  <p className="text-xs text-emerald-400 mt-1 font-medium">
+                    Offre de lancement · puis {plan.price}€/mois
+                  </p>
+                )}
                 <p className="text-sm text-slate-400 mt-1">
                   {plan.searches} recherches / mois
                 </p>

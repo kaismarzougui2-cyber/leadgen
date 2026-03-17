@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     .eq("id", user.id)
     .single();
 
+  const isNewUser = !profile?.stripe_customer_id;
   let customerId = profile?.stripe_customer_id;
 
   if (!customerId) {
@@ -46,6 +47,15 @@ export async function POST(req: NextRequest) {
 
   const origin = req.headers.get("origin") ?? "http://localhost:3000";
 
+  const starterPriceId = process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID;
+  const firstMonthCoupon = process.env.STRIPE_STARTER_FIRST_MONTH_COUPON;
+
+  // Appliquer le coupon premier mois uniquement pour les nouveaux utilisateurs sur le plan Starter
+  const discounts =
+    isNewUser && priceId === starterPriceId && firstMonthCoupon
+      ? [{ coupon: firstMonthCoupon }]
+      : undefined;
+
   const session = await getStripe().checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
@@ -54,6 +64,7 @@ export async function POST(req: NextRequest) {
     success_url: `${origin}/dashboard?upgraded=1`,
     cancel_url: `${origin}/pricing`,
     metadata: { supabase_user_id: user.id },
+    ...(discounts && { discounts }),
   });
 
   return NextResponse.json({ url: session.url });
