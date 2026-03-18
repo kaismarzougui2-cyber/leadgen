@@ -138,6 +138,12 @@ export default function PricingPage() {
                     {feature}
                   </li>
                 ))}
+                {plan.searches > 0 && (
+                  <li className="flex items-center gap-2.5 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-[#10B981] shrink-0" />
+                    Jusqu&apos;à {(plan.searches * 60).toLocaleString("fr-FR")} numéros de téléphone estimés
+                  </li>
+                )}
               </ul>
 
               <button

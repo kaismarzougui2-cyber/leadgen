@@ -18,7 +18,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Block clearly abusive payloads
     if (job.length < 2 || city.length < 2) {
       return NextResponse.json({ error: 'Requête trop courte.' }, { status: 400 })
     }
@@ -76,18 +75,13 @@ export async function POST(request: NextRequest) {
     const totalAllowed = planLimit + (sub.extra_credits ?? 0)
 
     // ── Atomic quota increment ────────────────────────────────────────────────
-    // We do a conditional UPDATE that only fires if searches_used < totalAllowed.
-    // This prevents race conditions: concurrent requests cannot both pass the
-    // quota check, because only one UPDATE will match the row.
-    // If 0 rows are returned, quota was already reached (or a concurrent request
-    // consumed the last slot a millisecond before us).
     const now = new Date().toISOString()
     const { data: incremented } = await supabase
       .from('subscriptions')
       .update({ searches_used: sub.searches_used + 1, updated_at: now })
       .eq('user_id', user.id)
-      .eq('searches_used', sub.searches_used) // optimistic lock: only if unchanged
-      .lt('searches_used', totalAllowed)       // hard cap
+      .eq('searches_used', sub.searches_used)
+      .lt('searches_used', totalAllowed)
       .select('searches_used')
 
     if (!incremented || incremented.length === 0) {
@@ -113,31 +107,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ results: mockResults, total: mockResults.length, demo: true })
     }
 
-    const googleResponse = await fetch(
-      'https://places.googleapis.com/v1/places:searchText',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.formattedAddress,places.rating',
-        },
-        body: JSON.stringify({ textQuery: `${job} à ${city}`, languageCode: 'fr' }),
-      }
-    )
-
-    if (!googleResponse.ok) {
-      const googleError = await googleResponse.json()
-      console.error('Google Places API error:', googleError)
-      const detail = googleError?.error?.message ?? googleError?.error?.status ?? JSON.stringify(googleError)
-      return NextResponse.json(
-        { error: `Erreur Google Places : ${detail}` },
-        { status: 502 }
-      )
-    }
-
-    const places = (await googleResponse.json()).places ?? []
-
     const RESULTS_LIMIT: Record<string, number> = {
       free: 5,
       starter: 5,
@@ -146,9 +115,103 @@ export async function POST(request: NextRequest) {
     }
     const maxResults = RESULTS_LIMIT[sub?.plan ?? 'free'] ?? 5
 
-    const allResults: SearchResult[] = places
-      .filter((p: GooglePlace) => p.nationalPhoneNumber || p.internationalPhoneNumber)
-      .map((p: GooglePlace) => ({
+    // ── Cache lookup ──────────────────────────────────────────────────────────
+    const cacheCity = city.toLowerCase()
+    const cacheProfession = job.toLowerCase()
+
+    const { data: cached } = await supabase
+      .from('search_cache')
+      .select('results')
+      .eq('city', cacheCity)
+      .eq('profession', cacheProfession)
+      .gt('expires_at', new Date().toISOString())
+      .single()
+
+    let allGoogleResults: GooglePlace[]
+
+    if (cached?.results) {
+      console.log(`[search] CACHE HIT — "${job}" à "${city}" (${(cached.results as GooglePlace[]).length} résultats)`)
+      allGoogleResults = cached.results as GooglePlace[]
+    } else {
+      console.log(`[search] CACHE MISS — "${job}" à "${city}" — appel Google Maps API`)
+
+      // ── Google Maps avec pagination (jusqu'à 3 pages = 60 résultats) ────────
+      allGoogleResults = []
+      let pageToken: string | undefined = undefined
+      let page = 1
+
+      while (page <= 3) {
+        if (page > 1 && pageToken) {
+          // Obligatoire : Google renvoie INVALID_REQUEST si on appelle trop vite
+          await new Promise((r) => setTimeout(r, 2000))
+        }
+
+        const requestBody: Record<string, unknown> = {
+          textQuery: `${job} à ${city}`,
+          languageCode: 'fr',
+        }
+        if (pageToken) requestBody.pageToken = pageToken
+
+        const googleResponse = await fetch(
+          'https://places.googleapis.com/v1/places:searchText',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': apiKey,
+              'X-Goog-FieldMask': 'places.id,places.displayName,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.formattedAddress,places.rating,nextPageToken',
+            },
+            body: JSON.stringify(requestBody),
+          }
+        )
+
+        if (!googleResponse.ok) {
+          const googleError = await googleResponse.json()
+          console.error(`[search] Google Places API error (page ${page}):`, googleError)
+          if (page === 1) {
+            const detail = googleError?.error?.message ?? googleError?.error?.status ?? JSON.stringify(googleError)
+            return NextResponse.json({ error: `Erreur Google Places : ${detail}` }, { status: 502 })
+          }
+          // Pages 2/3 : on s'arrête silencieusement si erreur
+          break
+        }
+
+        const json = await googleResponse.json()
+        const places: GooglePlace[] = json.places ?? []
+        allGoogleResults = allGoogleResults.concat(places)
+
+        console.log(`[search] Page ${page} — ${places.length} résultats (total: ${allGoogleResults.length})`)
+
+        pageToken = json.nextPageToken ?? undefined
+        if (!pageToken) break
+        page++
+      }
+
+      // Sauvegarde en cache (upsert sur city + profession)
+      const { error: cacheError } = await supabase
+        .from('search_cache')
+        .upsert(
+          {
+            city: cacheCity,
+            profession: cacheProfession,
+            results: allGoogleResults,
+            created_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+          { onConflict: 'city,profession' }
+        )
+
+      if (cacheError) {
+        console.warn('[search] Échec mise en cache (non bloquant):', cacheError.message)
+      } else {
+        console.log(`[search] Résultats mis en cache — "${job}" à "${city}" (${allGoogleResults.length} entrées)`)
+      }
+    }
+
+    // ── Filtrage + plan limit ─────────────────────────────────────────────────
+    const filtered: SearchResult[] = allGoogleResults
+      .filter((p) => p.nationalPhoneNumber || p.internationalPhoneNumber)
+      .map((p) => ({
         id: p.id,
         name: p.displayName?.text ?? 'Inconnu',
         phone: p.internationalPhoneNumber ?? p.nationalPhoneNumber!,
@@ -157,8 +220,8 @@ export async function POST(request: NextRequest) {
         website: p.websiteUri ?? null,
       }))
 
-    const sliced = allResults.slice(0, maxResults)
-    const truncated = allResults.length > maxResults
+    const sliced = filtered.slice(0, maxResults)
+    const truncated = filtered.length > maxResults
 
     // Enrich with INSEE SIRENE data (non-blocking, capped at 20 to avoid rate limits)
     const toEnrich = sliced.slice(0, 20)
@@ -174,7 +237,8 @@ export async function POST(request: NextRequest) {
 
     await supabase.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: results.length })
 
-    return NextResponse.json({ results, total: allResults.length, truncated, plan: sub?.plan ?? 'free' })
+    return NextResponse.json({ results, total: filtered.length, truncated, plan: sub?.plan ?? 'free' })
+
   } catch (error) {
     console.error('Search error:', error)
     return NextResponse.json({ error: 'Erreur interne du serveur.' }, { status: 500 })
