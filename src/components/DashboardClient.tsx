@@ -224,21 +224,21 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   }
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex flex-col pb-20 sm:pb-0">
+    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0">
       {/* Navbar */}
-      <nav className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+      <nav className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#8B5CF6] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center">
               <Zap className="w-4 h-4 text-white" />
             </div>
             <span className="text-xl font-bold text-white">LeadGen</span>
           </div>
           <div className="hidden sm:flex items-center gap-1">
-            <Link href="/dashboard" className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-white/10">
+            <Link href="/dashboard" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-white bg-[#1a1a1a]">
               Recherche
             </Link>
-            <Link href="/crm" className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-1.5">
+            <Link href="/crm" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5" />
               CRM
             </Link>
@@ -246,32 +246,32 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="text-sm text-slate-400 hidden sm:block">
+          <span className="text-sm text-[#aaaaaa] hidden sm:block">
             <span className={remaining <= 2 ? "text-amber-400 font-medium" : "text-white font-medium"}>
               {searchesUsed}/{searchesLimit}
             </span>{" "}
             recherches ce mois
           </span>
-          <span className="inline-flex items-center gap-1 bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6] text-xs font-medium px-2.5 py-1 rounded-full">
+          <span className="inline-flex items-center gap-1 bg-[#160002] border border-[#3a0002] text-[#E5000A] text-xs font-medium px-2.5 py-1 rounded-full">
             {PLAN_LABELS[plan] ?? plan}
           </span>
           {plan === "free" && (
             <Link
               href="/pricing"
-              className="hidden sm:inline-flex items-center gap-1 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              className="hidden sm:inline-flex items-center gap-1 bg-[#E5000A] hover:bg-[#CC0000] text-white text-xs font-semibold px-3 py-1.5 rounded-[9px] transition-colors"
             >
               <Zap className="w-3 h-3" />
               Upgrader
             </Link>
           )}
-          <span className="text-sm text-slate-400 hidden sm:block">{user.email}</span>
-          <Link href="/account" className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors">
+          <span className="text-sm text-[#aaaaaa] hidden sm:block">{user.email}</span>
+          <Link href="/account" className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors">
             <Settings className="w-4 h-4" />
             <span className="hidden sm:block">Compte</span>
           </Link>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:block">Déconnexion</span>
@@ -280,17 +280,17 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
       </nav>
 
       {/* Mobile bottom tab bar */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0F172A] border-t border-white/10 flex">
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-[#1a1a1a] flex">
         <Link
           href="/dashboard"
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-white bg-white/10"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#E5000A] bg-[#160002]"
         >
           <Search className="w-5 h-5" />
           <span className="text-xs font-medium">Recherche</span>
         </Link>
         <Link
           href="/crm"
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-slate-400 active:bg-white/5"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#666666] active:bg-[#111111]"
         >
           <Users className="w-5 h-5" />
           <span className="text-xs font-medium">Mon CRM</span>
@@ -298,7 +298,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         {plan === "free" && (
           <Link
             href="/pricing"
-            className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#8B5CF6] active:bg-white/5"
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#E5000A] active:bg-[#111111]"
           >
             <Zap className="w-5 h-5" />
             <span className="text-xs font-medium">Upgrader</span>
@@ -306,7 +306,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         )}
         <button
           onClick={handleLogout}
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-slate-400 active:bg-white/5"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#666666] active:bg-[#111111]"
         >
           <LogOut className="w-5 h-5" />
           <span className="text-xs font-medium">Déco</span>
@@ -318,36 +318,36 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         <section className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-white">Moteur de recherche</h1>
-            <p className="text-slate-400 mt-1">
+            <p className="text-[#aaaaaa] mt-1">
               Entrez un métier et une ville pour trouver des prospects qualifiés.
             </p>
           </div>
 
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
               <input
                 type="text"
                 value={job}
                 onChange={(e) => setJob(e.target.value)}
                 placeholder="Métier (ex: plombier, coiffeur...)"
-                className="w-full pl-10 pr-4 py-3 bg-[#1E293B] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white placeholder-[#444444] focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] transition-colors"
               />
             </div>
             <div className="relative flex-1">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
               <input
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Ville (ex: Paris, Lyon...)"
-                className="w-full pl-10 pr-4 py-3 bg-[#1E293B] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-colors"
+                className="w-full pl-10 pr-4 py-3 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white placeholder-[#444444] focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] transition-colors"
               />
             </div>
             <button
               type="submit"
               disabled={loading || limitReached}
-              className="flex items-center justify-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+              className="flex items-center justify-center gap-2 bg-[#E5000A] hover:bg-[#CC0000] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-[12px] transition-colors whitespace-nowrap"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               {loading ? "Recherche..." : "Rechercher"}
@@ -355,14 +355,14 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
           </form>
 
           {limitReached && (
-            <div className="flex items-center justify-between gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 text-sm">
+            <div className="flex items-center justify-between gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-[12px] text-amber-400 text-sm">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 Quota mensuel atteint. Passez à un plan supérieur pour continuer.
               </div>
               <Link
                 href="/pricing"
-                className="shrink-0 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                className="shrink-0 bg-[#E5000A] hover:bg-[#CC0000] text-white text-xs font-semibold px-3 py-1.5 rounded-[9px] transition-colors"
               >
                 Voir les plans
               </Link>
@@ -370,7 +370,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
           )}
 
           {error && (
-            <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm">
+            <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-[12px] text-red-400 text-sm">
               <X className="w-4 h-4 shrink-0" />
               {error}
             </div>
@@ -378,9 +378,9 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         </section>
 
         {/* ROI Simulator */}
-        <section className="bg-[#1E293B] border border-white/10 rounded-2xl p-6">
+        <section className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] p-6">
           <div className="flex items-center gap-2 mb-5">
-            <TrendingUp className="w-5 h-5 text-[#10B981]" />
+            <TrendingUp className="w-5 h-5 text-[#22C55E]" />
             <h2 className="text-lg font-semibold text-white">Simulateur de ROI</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -390,7 +390,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
               { label: "Panier moyen", value: roiRevenue, min: 100, max: 5000, step: 100, set: setRoiRevenue, format: (v: number) => `${v}€` },
             ].map(({ label, value, min, max, step, set, format }) => (
               <div key={label}>
-                <label className="block text-sm text-slate-400 mb-2">
+                <label className="block text-sm text-[#aaaaaa] mb-2">
                   {label} <span className="text-white font-medium">{format(value)}</span>
                 </label>
                 <input
@@ -400,17 +400,17 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                   step={step}
                   value={value}
                   onChange={(e) => set(Number(e.target.value))}
-                  className="w-full accent-[#8B5CF6]"
+                  className="w-full accent-[#E5000A]"
                 />
               </div>
             ))}
           </div>
-          <div className="mt-6 p-4 bg-[#10B981]/10 border border-[#10B981]/30 rounded-xl flex items-center justify-between">
+          <div className="mt-6 p-4 bg-[#001a05] border border-[#22C55E]/30 rounded-[12px] flex items-center justify-between">
             <div>
-              <p className="text-slate-400 text-sm">CA potentiel estimé</p>
-              <p className="text-sm text-slate-500 mt-0.5">{roiLeads} leads × {roiConversion}% conv. × {roiRevenue}€</p>
+              <p className="text-[#aaaaaa] text-sm">CA potentiel estimé</p>
+              <p className="text-sm text-[#666666] mt-0.5">{roiLeads} leads × {roiConversion}% conv. × {roiRevenue}€</p>
             </div>
-            <p className="text-3xl font-bold text-[#10B981]" suppressHydrationWarning>{roiTotal.toLocaleString("fr-FR")}€</p>
+            <p className="text-3xl font-bold text-[#22C55E]" suppressHydrationWarning>{roiTotal.toLocaleString("fr-FR")}€</p>
           </div>
         </section>
 
@@ -418,16 +418,16 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         {searched && (
           <section className="space-y-4">
             {isDemo && (
-              <div className="flex items-center gap-3 p-4 bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-xl text-sm text-[#8B5CF6]">
+              <div className="flex items-center gap-3 p-4 bg-[#E5000A]/10 border border-[#E5000A]/30 rounded-[12px] text-sm text-[#E5000A]">
                 <Zap className="w-4 h-4 shrink-0" />
                 <span>
                   <strong>Mode Démo</strong> — Données fictives. Ajoutez{" "}
-                  <code className="bg-white/10 px-1 rounded">GOOGLE_PLACES_API_KEY</code> sur Vercel pour des résultats réels.
+                  <code className="bg-[#1a1a1a] px-1 rounded">GOOGLE_PLACES_API_KEY</code> sur Vercel pour des résultats réels.
                 </span>
               </div>
             )}
             {truncated && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-sm text-amber-400">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-[12px] text-sm text-amber-400">
                 <div className="flex items-center gap-3">
                   <TrendingUp className="w-4 h-4 shrink-0" />
                   <span>
@@ -436,7 +436,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                 </div>
                 <Link
                   href="/pricing"
-                  className="shrink-0 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
+                  className="shrink-0 bg-[#E5000A] hover:bg-[#CC0000] text-white font-semibold px-4 py-2 rounded-[9px] transition-colors whitespace-nowrap"
                 >
                   Voir les plans
                 </Link>
@@ -447,7 +447,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-bold text-white">Résultats ({results.length})</h2>
                 {hiddenCount > 0 && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6] px-2.5 py-1 rounded-full">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-[#E5000A]/10 border border-[#E5000A]/30 text-[#E5000A] px-2.5 py-1 rounded-full">
                     <CheckCircle className="w-3.5 h-3.5" />
                     {hiddenCount} déjà dans votre CRM
                   </span>
@@ -461,14 +461,14 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
               {results.length > 0 && (
                 <div className="flex items-center gap-3">
                   {saveStatus.savedCount > 0 && (
-                    <Link href="/crm" className="text-sm text-[#10B981] hover:underline flex items-center gap-1">
+                    <Link href="/crm" className="text-sm text-[#22C55E] hover:underline flex items-center gap-1">
                       <Users className="w-3.5 h-3.5" /> Voir dans le CRM
                     </Link>
                   )}
                   <button
                     onClick={handleSaveAll}
                     disabled={saveStatus.loading || saveStatus.savedCount > 0}
-                    className="flex items-center gap-2 bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm"
+                    className="flex items-center gap-2 bg-[#22C55E] hover:bg-[#16a34a] disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-[9px] transition-colors text-sm"
                   >
                     {saveStatus.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : saveStatus.savedCount > 0 ? <CheckCircle className="w-4 h-4" /> : <BookmarkPlus className="w-4 h-4" />}
                     {saveStatus.savedCount > 0 ? `${saveStatus.savedCount} sauvegardés !` : saveStatus.loading ? "Sauvegarde..." : "Tout sauvegarder dans mon CRM"}
@@ -478,13 +478,13 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
             </div>
 
             {saveStatus.error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-[9px] text-red-400 text-sm">
                 {saveStatus.error}
               </div>
             )}
 
             {results.length === 0 ? (
-              <div className="text-center py-16 text-slate-500">
+              <div className="text-center py-16 text-[#666666]">
                 <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p className="text-lg">Aucun résultat trouvé</p>
                 <p className="text-sm mt-1">Essayez avec un autre métier ou une autre ville.</p>
@@ -498,7 +498,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                 </div>
 
                 {allSaved && getSuggestions().length > 0 && (
-                  <div className="p-5 rounded-xl border border-amber-500/20 bg-amber-500/5 space-y-3">
+                  <div className="p-5 rounded-[12px] border border-amber-500/20 bg-amber-500/5 space-y-3">
                     <div className="flex items-center gap-2 text-amber-400 text-sm font-medium">
                       <Lightbulb className="w-4 h-4" />
                       Tous ces prospects sont déjà dans votre CRM. Essayez ces variantes pour trouver de nouveaux leads :
@@ -508,9 +508,9 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                         <button
                           key={s.label}
                           onClick={() => { setJob(s.job); setCity(s.city); }}
-                          className="inline-flex items-center gap-1.5 bg-[#1E293B] hover:bg-white/10 border border-white/10 text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
+                          className="inline-flex items-center gap-1.5 bg-[#0d0d0d] hover:bg-[#1a1a1a] border border-[#1a1a1a] text-white text-sm px-3 py-1.5 rounded-[9px] transition-colors"
                         >
-                          <Search className="w-3.5 h-3.5 text-slate-400" />
+                          <Search className="w-3.5 h-3.5 text-[#aaaaaa]" />
                           {s.label}
                         </button>
                       ))}
@@ -528,24 +528,24 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
 
 function LeadCard({ result }: { result: SearchResult }) {
   return (
-    <div className={`bg-[#1E293B] border rounded-xl p-5 transition-colors flex flex-col gap-2.5 ${result.alreadySaved ? "border-white/5 opacity-50" : "border-white/10 hover:border-white/20"}`}>
+    <div className={`bg-[#0d0d0d] border rounded-[12px] p-5 transition-colors flex flex-col gap-2.5 ${result.alreadySaved ? "border-white/5 opacity-50" : "border-[#1a1a1a] hover:border-[#2a2a2a]"}`}>
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-semibold text-white text-sm line-clamp-2">{result.name}</h3>
         {result.alreadySaved && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-xs font-medium bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 text-[#8B5CF6] px-2 py-0.5 rounded-full">
+          <span className="shrink-0 inline-flex items-center gap-1 text-xs font-medium bg-[#E5000A]/10 border border-[#E5000A]/30 text-[#E5000A] px-2 py-0.5 rounded-full">
             <CheckCircle className="w-3 h-3" /> CRM
           </span>
         )}
       </div>
 
-      <div className="flex items-center gap-2 text-sm text-slate-300">
-        <Phone className="w-3.5 h-3.5 text-[#8B5CF6] shrink-0" />
-        <a href={`tel:${result.phone}`} className="hover:text-[#8B5CF6] transition-colors">{result.phone}</a>
+      <div className="flex items-center gap-2 text-sm text-[#aaaaaa]">
+        <Phone className="w-3.5 h-3.5 text-[#E5000A] shrink-0" />
+        <a href={`tel:${result.phone}`} className="hover:text-[#E5000A] transition-colors">{result.phone}</a>
       </div>
 
       {result.address && (
-        <div className="flex items-start gap-2 text-sm text-slate-400">
-          <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 text-sm text-[#aaaaaa]">
+          <MapPin className="w-3.5 h-3.5 text-[#666666] shrink-0 mt-0.5" />
           <span className="line-clamp-2">{result.address}</span>
         </div>
       )}
@@ -554,24 +554,24 @@ function LeadCard({ result }: { result: SearchResult }) {
         <div className="flex items-center gap-1.5 text-sm">
           <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
           <span className="text-amber-400 font-medium">{result.rating}</span>
-          <span className="text-slate-500">/ 5</span>
+          <span className="text-[#666666]">/ 5</span>
         </div>
       )}
 
       {result.website ? (
-        <div className="flex items-center gap-2 text-sm text-slate-400">
-          <Globe className="w-3.5 h-3.5 text-[#10B981] shrink-0" />
+        <div className="flex items-center gap-2 text-sm text-[#aaaaaa]">
+          <Globe className="w-3.5 h-3.5 text-[#22C55E] shrink-0" />
           <a
             href={result.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-[#10B981] transition-colors truncate"
+            className="hover:text-[#22C55E] transition-colors truncate"
           >
             {result.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
           </a>
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-sm text-slate-600">
+        <div className="flex items-center gap-2 text-sm text-[#333333]">
           <Globe className="w-3.5 h-3.5 shrink-0" />
           <span>Pas de site web</span>
         </div>
@@ -583,7 +583,7 @@ function LeadCard({ result }: { result: SearchResult }) {
             SIREN {result.siren}
           </span>
           {result.naf_label && (
-            <span className="text-xs text-slate-500 truncate">{result.naf_label}</span>
+            <span className="text-xs text-[#666666] truncate">{result.naf_label}</span>
           )}
         </div>
       )}
