@@ -418,7 +418,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         {searched && (
           <section className="space-y-4">
             {isDemo && (
-              <div className="flex items-center gap-3 p-4 bg-[#E5000A]/10 border border-[#E5000A]/30 rounded-[12px] text-sm text-[#E5000A]">
+              <div className="flex items-center gap-3 p-4 bg-[#160002] border border-[#3a0002] rounded-[12px] text-sm text-[#E5000A]">
                 <Zap className="w-4 h-4 shrink-0" />
                 <span>
                   <strong>Mode Démo</strong> — Données fictives. Ajoutez{" "}
@@ -447,7 +447,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-bold text-white">Résultats ({results.length})</h2>
                 {hiddenCount > 0 && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-[#E5000A]/10 border border-[#E5000A]/30 text-[#E5000A] px-2.5 py-1 rounded-full">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-[#160002] border border-[#3a0002] text-[#E5000A] px-2.5 py-1 rounded-full">
                     <CheckCircle className="w-3.5 h-3.5" />
                     {hiddenCount} déjà dans votre CRM
                   </span>
@@ -528,11 +528,11 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
 
 function LeadCard({ result }: { result: SearchResult }) {
   return (
-    <div className={`bg-[#0d0d0d] border rounded-[12px] p-5 transition-colors flex flex-col gap-2.5 ${result.alreadySaved ? "border-white/5 opacity-50" : "border-[#1a1a1a] hover:border-[#2a2a2a]"}`}>
+    <div className={`bg-[#0d0d0d] border rounded-[12px] p-5 transition-colors flex flex-col gap-2.5 ${result.alreadySaved ? "border-[#1a1a1a] opacity-50" : "border-[#1a1a1a] hover:border-[#2a2a2a]"}`}>
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-semibold text-white text-sm line-clamp-2">{result.name}</h3>
         {result.alreadySaved && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-xs font-medium bg-[#E5000A]/10 border border-[#E5000A]/30 text-[#E5000A] px-2 py-0.5 rounded-full">
+          <span className="shrink-0 inline-flex items-center gap-1 text-xs font-medium bg-[#160002] border border-[#3a0002] text-[#E5000A] px-2 py-0.5 rounded-full">
             <CheckCircle className="w-3 h-3" /> CRM
           </span>
         )}
@@ -579,7 +579,7 @@ function LeadCard({ result }: { result: SearchResult }) {
 
       {result.siren && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs px-2 py-0.5 rounded-full font-mono">
+          <span className="inline-flex items-center gap-1 bg-[#111111] border border-[#1e1e1e] text-[#aaaaaa] text-xs px-2 py-0.5 rounded-full font-mono">
             SIREN {result.siren}
           </span>
           {result.naf_label && (
