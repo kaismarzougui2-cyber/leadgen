@@ -39,7 +39,7 @@ export default function AutoCheckoutPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6">
+      <div className="min-h-screen bg-black flex items-center justify-center px-6">
         <div className="text-center space-y-4">
           <div className="w-14 h-14 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center mx-auto">
             <Zap className="w-6 h-6 text-red-400" />
@@ -47,7 +47,7 @@ export default function AutoCheckoutPage() {
           <p className="text-white font-semibold">{error}</p>
           <button
             onClick={() => router.push("/pricing")}
-            className="text-sm text-[#8B5CF6] hover:underline"
+            className="text-sm text-[#E5000A] hover:underline"
           >
             Retour aux tarifs
           </button>
@@ -57,13 +57,13 @@ export default function AutoCheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-black flex items-center justify-center px-6">
       <div className="text-center space-y-4">
-        <div className="w-14 h-14 rounded-full bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 flex items-center justify-center mx-auto">
-          <Loader2 className="w-6 h-6 text-[#8B5CF6] animate-spin" />
+        <div className="w-14 h-14 rounded-full bg-[#160002] border border-[#3a0002] flex items-center justify-center mx-auto">
+          <Loader2 className="w-6 h-6 text-[#E5000A] animate-spin" />
         </div>
         <p className="text-white font-semibold">Préparation du paiement...</p>
-        <p className="text-slate-400 text-sm">Vous allez être redirigé vers Stripe.</p>
+        <p className="text-[#aaaaaa] text-sm">Vous allez être redirigé vers Stripe.</p>
       </div>
     </div>
   );

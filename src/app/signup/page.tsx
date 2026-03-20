@@ -60,14 +60,14 @@ function SignupForm() {
   if (done) {
     return (
       <div className="text-center space-y-4">
-        <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto">
-          <Check className="w-7 h-7 text-emerald-400" />
+        <div className="w-14 h-14 rounded-full bg-[#001a05] border border-[#22C55E]/30 flex items-center justify-center mx-auto">
+          <Check className="w-7 h-7 text-[#22C55E]" />
         </div>
         <h2 className="text-xl font-bold text-white">Vérifiez votre email</h2>
-        <p className="text-slate-400 text-sm max-w-xs mx-auto">
+        <p className="text-[#aaaaaa] text-sm max-w-xs mx-auto">
           Un lien de confirmation a été envoyé à <span className="text-white font-medium">{email}</span>. Cliquez dessus pour activer votre compte et accéder au paiement.
         </p>
-        <p className="text-slate-500 text-xs">Vérifiez aussi vos spams.</p>
+        <p className="text-[#666666] text-xs">Vérifiez aussi vos spams.</p>
       </div>
     );
   }
@@ -78,7 +78,7 @@ function SignupForm() {
       <button
         onClick={handleGoogle}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-3 bg-white text-gray-800 font-medium py-3 px-4 rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-3 bg-white text-gray-800 font-medium py-3 px-4 rounded-[12px] hover:bg-gray-100 transition-colors disabled:opacity-50"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -90,31 +90,31 @@ function SignupForm() {
       </button>
 
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-white/10" />
-        <span className="text-slate-500 text-xs">ou</span>
-        <div className="flex-1 h-px bg-white/10" />
+        <div className="flex-1 h-px bg-[#1a1a1a]" />
+        <span className="text-[#666666] text-xs">ou</span>
+        <div className="flex-1 h-px bg-[#1a1a1a]" />
       </div>
 
       <form onSubmit={handleSignup} className="space-y-4">
         <div>
-          <label className="block text-sm text-slate-300 mb-1.5">Email</label>
+          <label className="block text-sm text-[#aaaaaa] mb-1.5">Email</label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="vous@example.com"
-              className="w-full pl-10 pr-4 py-3 bg-[#0F172A] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-colors text-sm"
+              className="w-full pl-10 pr-4 py-3 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white placeholder-[#444444] focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] transition-colors text-sm"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm text-slate-300 mb-1.5">Mot de passe</label>
+          <label className="block text-sm text-[#aaaaaa] mb-1.5">Mot de passe</label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
             <input
               type="password"
               value={password}
@@ -122,14 +122,14 @@ function SignupForm() {
               required
               placeholder="••••••••"
               minLength={6}
-              className="w-full pl-10 pr-4 py-3 bg-[#0F172A] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-colors text-sm"
+              className="w-full pl-10 pr-4 py-3 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white placeholder-[#444444] focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] transition-colors text-sm"
             />
           </div>
-          <p className="text-xs text-slate-500 mt-1">Minimum 6 caractères</p>
+          <p className="text-xs text-[#666666] mt-1">Minimum 6 caractères</p>
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          <div className="p-3 rounded-[12px] bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
             {error}
           </div>
         )}
@@ -137,17 +137,17 @@ function SignupForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+          className="w-full bg-[#E5000A] hover:bg-[#CC0000] text-white font-semibold py-3 px-4 rounded-[12px] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Créer mon compte et payer"}
         </button>
       </form>
 
-      <p className="text-center text-sm text-slate-400">
+      <p className="text-center text-sm text-[#aaaaaa]">
         Déjà un compte ?{" "}
         <Link
           href={`/?redirect=${encodeURIComponent(redirectTo)}`}
-          className="text-[#8B5CF6] hover:underline font-medium"
+          className="text-[#E5000A] hover:underline font-medium"
         >
           Se connecter
         </Link>
@@ -158,16 +158,16 @@ function SignupForm() {
 
 export default function SignupPage() {
   return (
-    <div className="min-h-screen bg-[#0F172A] flex flex-col">
+    <div className="min-h-screen bg-black flex flex-col">
       {/* Navbar */}
-      <nav className="border-b border-white/10 px-6 py-4 flex items-center justify-between max-w-7xl mx-auto w-full">
+      <nav className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between max-w-7xl mx-auto w-full">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#8B5CF6] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center">
             <Zap className="w-4 h-4 text-white" />
           </div>
           <span className="text-xl font-bold text-white">LeadGen</span>
         </Link>
-        <Link href="/pricing" className="text-sm text-slate-400 hover:text-white transition-colors">
+        <Link href="/pricing" className="text-sm text-[#aaaaaa] hover:text-white transition-colors">
           Tarifs
         </Link>
       </nav>
@@ -176,28 +176,28 @@ export default function SignupPage() {
         <div className="w-full max-w-md space-y-8">
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center gap-2 bg-[#8B5CF6]/10 border border-[#8B5CF6]/30 rounded-full px-4 py-1.5 text-sm text-[#8B5CF6] mb-2">
+            <div className="inline-flex items-center gap-2 bg-[#160002] border border-[#3a0002] rounded-full px-4 py-1.5 text-sm text-[#E5000A] mb-2">
               <Zap className="w-3.5 h-3.5" />
               Inscription rapide
             </div>
             <h1 className="text-3xl font-bold text-white">Créez votre compte</h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-[#aaaaaa] text-sm">
               Moins d&apos;une minute pour accéder à votre abonnement.
             </p>
           </div>
 
           {/* Form card */}
-          <div className="bg-[#1E293B] border border-white/10 rounded-2xl p-8 shadow-2xl">
-            <Suspense fallback={<div className="h-48 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-slate-500" /></div>}>
+          <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] p-8 shadow-2xl">
+            <Suspense fallback={<div className="h-48 flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-[#666666]" /></div>}>
               <SignupForm />
             </Suspense>
           </div>
 
-          <p className="text-center text-xs text-slate-600">
+          <p className="text-center text-xs text-[#333333]">
             En créant un compte, vous acceptez nos{" "}
-            <Link href="/cgu" className="hover:text-slate-400 transition-colors underline">CGU</Link>{" "}
+            <Link href="/cgu" className="hover:text-[#aaaaaa] transition-colors underline">CGU</Link>{" "}
             et notre{" "}
-            <Link href="/confidentialite" className="hover:text-slate-400 transition-colors underline">politique de confidentialité</Link>.
+            <Link href="/confidentialite" className="hover:text-[#aaaaaa] transition-colors underline">politique de confidentialité</Link>.
           </p>
         </div>
       </main>

@@ -66,10 +66,10 @@ export default function AuthForm({ redirectTo = "/dashboard" }: { redirectTo?: s
   }
 
   return (
-    <div className="bg-[#1E293B] border border-white/10 rounded-2xl p-8 shadow-2xl">
+    <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] p-8 shadow-2xl">
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
-        <div className="w-8 h-8 rounded-lg bg-[#8B5CF6] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center">
           <Zap className="w-4 h-4 text-white" />
         </div>
         <span className="text-xl font-bold text-white">LeadGen</span>
@@ -78,7 +78,7 @@ export default function AuthForm({ redirectTo = "/dashboard" }: { redirectTo?: s
       <h2 className="text-2xl font-bold text-white mb-1">
         {mode === "login" ? "Bon retour !" : "Créer un compte"}
       </h2>
-      <p className="text-slate-400 text-sm mb-6">
+      <p className="text-[#aaaaaa] text-sm mb-6">
         {mode === "login"
           ? "Connectez-vous pour accéder à votre espace."
           : "Commencez gratuitement dès maintenant."}
@@ -88,7 +88,7 @@ export default function AuthForm({ redirectTo = "/dashboard" }: { redirectTo?: s
       <button
         onClick={handleGoogleLogin}
         disabled={loading}
-        className="w-full flex items-center justify-center gap-3 bg-white text-gray-800 font-medium py-2.5 px-4 rounded-lg hover:bg-gray-100 transition-colors mb-4 disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-3 bg-white text-gray-800 font-medium py-2.5 px-4 rounded-[9px] hover:bg-gray-100 transition-colors mb-4 disabled:opacity-50"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -113,39 +113,39 @@ export default function AuthForm({ redirectTo = "/dashboard" }: { redirectTo?: s
 
       {/* Divider */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1 h-px bg-white/10" />
-        <span className="text-slate-500 text-xs">ou</span>
-        <div className="flex-1 h-px bg-white/10" />
+        <div className="flex-1 h-px bg-[#1a1a1a]" />
+        <span className="text-[#666666] text-xs">ou</span>
+        <div className="flex-1 h-px bg-[#1a1a1a]" />
       </div>
 
       {/* Email/Password form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm text-slate-300 mb-1.5">Email</label>
+          <label className="block text-sm text-[#aaaaaa] mb-1.5">Email</label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="vous@example.com"
-              className="w-full pl-10 pr-4 py-2.5 bg-[#0F172A] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-colors text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[9px] text-white placeholder-[#444444] focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] transition-colors text-sm"
             />
           </div>
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-sm text-slate-300">Mot de passe</label>
+            <label className="block text-sm text-[#aaaaaa]">Mot de passe</label>
             {mode === "login" && (
-              <Link href="/auth/forgot-password" className="text-xs text-[#8B5CF6] hover:underline">
+              <Link href="/auth/forgot-password" className="text-xs text-[#E5000A] hover:underline">
                 Mot de passe oublié ?
               </Link>
             )}
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
             <input
               type="password"
               value={password}
@@ -153,16 +153,16 @@ export default function AuthForm({ redirectTo = "/dashboard" }: { redirectTo?: s
               required
               placeholder="••••••••"
               minLength={6}
-              className="w-full pl-10 pr-4 py-2.5 bg-[#0F172A] border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-[#8B5CF6] focus:ring-1 focus:ring-[#8B5CF6] transition-colors text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[9px] text-white placeholder-[#444444] focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] transition-colors text-sm"
             />
           </div>
         </div>
 
         {message && (
           <div
-            className={`p-3 rounded-lg text-sm ${
+            className={`p-3 rounded-[9px] text-sm ${
               message.type === "success"
-                ? "bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981]"
+                ? "bg-[#001a05] border border-[#22C55E]/30 text-[#22C55E]"
                 : "bg-red-500/10 border border-red-500/30 text-red-400"
             }`}
           >
@@ -173,7 +173,7 @@ export default function AuthForm({ redirectTo = "/dashboard" }: { redirectTo?: s
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full bg-[#E5000A] hover:bg-[#CC0000] text-white font-semibold py-2.5 px-4 rounded-[9px] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -186,14 +186,14 @@ export default function AuthForm({ redirectTo = "/dashboard" }: { redirectTo?: s
       </form>
 
       {/* Toggle mode */}
-      <p className="text-center text-sm text-slate-400 mt-4">
+      <p className="text-center text-sm text-[#aaaaaa] mt-4">
         {mode === "login" ? "Pas encore de compte ?" : "Déjà un compte ?"}{" "}
         <button
           onClick={() => {
             setMode(mode === "login" ? "signup" : "login");
             setMessage(null);
           }}
-          className="text-[#8B5CF6] hover:underline font-medium"
+          className="text-[#E5000A] hover:underline font-medium"
         >
           {mode === "login" ? "S'inscrire" : "Se connecter"}
         </button>

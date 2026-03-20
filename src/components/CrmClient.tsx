@@ -53,7 +53,7 @@ const STATUS_COLORS: Record<Status, string> = {
   "Réfléchit": "bg-amber-500/20 text-amber-400 border-amber-500/30",
   "Pas intéressé": "bg-red-500/20 text-red-400 border-red-500/30",
   "Intéressé": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  "À rappeler": "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  "À rappeler": "bg-[#160002] text-[#E5000A] border-[#3a0002]",
 };
 
 export default function CrmClient({
@@ -138,35 +138,35 @@ export default function CrmClient({
   const countByStatus = (s: Status) => prospects.filter((p) => p.status === s).length;
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex flex-col pb-20 sm:pb-0">
+    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0">
       {/* Navbar */}
-      <nav className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+      <nav className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#8B5CF6] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center">
               <Zap className="w-4 h-4 text-white" />
             </div>
             <span className="text-xl font-bold text-white">LeadGen</span>
           </div>
           <div className="hidden sm:flex items-center gap-1">
-            <Link href="/dashboard" className="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+            <Link href="/dashboard" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors">
               Recherche
             </Link>
-            <Link href="/crm" className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-white/10 flex items-center gap-1.5">
+            <Link href="/crm" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-white bg-[#1a1a1a] flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5" />
               CRM
             </Link>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-slate-400 hidden sm:block">{userEmail}</span>
-          <Link href="/account" className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors">
+          <span className="text-sm text-[#aaaaaa] hidden sm:block">{userEmail}</span>
+          <Link href="/account" className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors">
             <Settings className="w-4 h-4" />
             <span className="hidden sm:block">Compte</span>
           </Link>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:block">Déconnexion</span>
@@ -175,24 +175,24 @@ export default function CrmClient({
       </nav>
 
       {/* Mobile bottom tab bar */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0F172A] border-t border-white/10 flex">
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-[#1a1a1a] flex">
         <Link
           href="/dashboard"
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-slate-400 active:bg-white/5"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#aaaaaa] active:bg-[#111111]"
         >
           <Search className="w-5 h-5" />
           <span className="text-xs font-medium">Recherche</span>
         </Link>
         <Link
           href="/crm"
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-white bg-white/10"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#E5000A] bg-[#160002]"
         >
           <Users className="w-5 h-5" />
           <span className="text-xs font-medium">Mon CRM</span>
         </Link>
         <button
           onClick={handleLogout}
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-slate-400 active:bg-white/5"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#aaaaaa] active:bg-[#111111]"
         >
           <LogOut className="w-5 h-5" />
           <span className="text-xs font-medium">Déco</span>
@@ -204,13 +204,13 @@ export default function CrmClient({
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white">Mon CRM</h1>
-            <p className="text-slate-400 mt-1">{prospects.length} prospect{prospects.length !== 1 ? "s" : ""} sauvegardé{prospects.length !== 1 ? "s" : ""}</p>
+            <p className="text-[#aaaaaa] mt-1">{prospects.length} prospect{prospects.length !== 1 ? "s" : ""} sauvegardé{prospects.length !== 1 ? "s" : ""}</p>
           </div>
           <div className="flex items-center gap-3">
             {prospects.length > 0 && (
               <button
                 onClick={exportCSV}
-                className="flex items-center gap-2 bg-[#1E293B] hover:bg-white/10 border border-white/10 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm"
+                className="flex items-center gap-2 bg-[#0d0d0d] hover:bg-[#1a1a1a] border border-[#1a1a1a] text-white font-medium px-4 py-2 rounded-[9px] transition-colors text-sm"
               >
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:block">Exporter CSV</span>
@@ -218,7 +218,7 @@ export default function CrmClient({
             )}
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm"
+              className="flex items-center gap-2 bg-[#E5000A] hover:bg-[#CC0000] text-white font-medium px-4 py-2 rounded-[9px] transition-colors text-sm"
             >
               <Search className="w-4 h-4" />
               <span className="hidden sm:block">Nouvelle recherche</span>
@@ -232,14 +232,14 @@ export default function CrmClient({
             <button
               key={s}
               onClick={() => setFilterStatus(filterStatus === s ? "Tous" : s)}
-              className={`p-3 rounded-xl border text-left transition-all ${
+              className={`p-3 rounded-[12px] border text-left transition-all ${
                 filterStatus === s
                   ? STATUS_COLORS[s] + " border-opacity-100"
-                  : "bg-[#1E293B] border-white/10 hover:border-white/20"
+                  : "bg-[#0d0d0d] border-[#1a1a1a] hover:border-[#2a2a2a]"
               }`}
             >
               <p className="text-2xl font-bold text-white">{countByStatus(s)}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{s}</p>
+              <p className="text-xs text-[#aaaaaa] mt-0.5">{s}</p>
             </button>
           ))}
         </div>
@@ -247,19 +247,19 @@ export default function CrmClient({
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher un prospect..."
-              className="w-full pl-10 pr-4 py-2.5 bg-[#1E293B] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-[#8B5CF6] text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white placeholder-[#666666] focus:outline-none focus:border-[#E5000A] text-sm"
             />
           </div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as Status | "Tous")}
-            className="bg-[#1E293B] border border-white/10 rounded-xl text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#8B5CF6]"
+            className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#E5000A]"
           >
             <option value="Tous">Tous les statuts</option>
             {STATUSES.map((s) => (
@@ -270,7 +270,7 @@ export default function CrmClient({
             <select
               value={filterCity}
               onChange={(e) => setFilterCity(e.target.value)}
-              className="bg-[#1E293B] border border-white/10 rounded-xl text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#8B5CF6]"
+              className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#E5000A]"
             >
               <option value="">Toutes les villes</option>
               {uniqueCities.map((c) => (
@@ -282,7 +282,7 @@ export default function CrmClient({
             <select
               value={filterJob}
               onChange={(e) => setFilterJob(e.target.value)}
-              className="bg-[#1E293B] border border-white/10 rounded-xl text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#8B5CF6]"
+              className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#E5000A]"
             >
               <option value="">Tous les métiers</option>
               {uniqueJobs.map((j) => (
@@ -292,10 +292,10 @@ export default function CrmClient({
           )}
           <button
             onClick={() => setFilterNoWebsite((v) => !v)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] border text-sm font-medium transition-colors ${
               filterNoWebsite
-                ? "bg-[#8B5CF6]/20 border-[#8B5CF6]/50 text-[#8B5CF6]"
-                : "bg-[#1E293B] border-white/10 text-slate-400 hover:text-white"
+                ? "bg-[#160002] border-[#3a0002] text-[#E5000A]"
+                : "bg-[#0d0d0d] border-[#1a1a1a] text-[#aaaaaa] hover:text-white"
             }`}
           >
             <Globe className="w-4 h-4" />
@@ -305,7 +305,7 @@ export default function CrmClient({
 
         {/* Table */}
         {filtered.length === 0 ? (
-          <div className="text-center py-20 text-slate-500">
+          <div className="text-center py-20 text-[#666666]">
             <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p className="text-lg">Aucun prospect trouvé</p>
             <p className="text-sm mt-1">
@@ -364,20 +364,20 @@ function ProspectRow({
   const isEditingThis = editingNote === prospect.id;
 
   return (
-    <div className="bg-[#1E293B] border border-white/10 rounded-xl p-5 hover:border-white/20 transition-colors">
+    <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] p-5 hover:border-[#2a2a2a] transition-colors">
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
         {/* Info */}
         <div className="flex-1 space-y-2 min-w-0">
           <h3 className="font-semibold text-white">{prospect.name}</h3>
 
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-400">
-            <a href={`tel:${prospect.phone}`} className="flex items-center gap-1.5 hover:text-[#8B5CF6] transition-colors">
-              <Phone className="w-3.5 h-3.5 text-[#8B5CF6]" />
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-[#aaaaaa]">
+            <a href={`tel:${prospect.phone}`} className="flex items-center gap-1.5 hover:text-[#E5000A] transition-colors">
+              <Phone className="w-3.5 h-3.5 text-[#E5000A]" />
               {prospect.phone}
             </a>
             {prospect.address && (
               <span className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                <MapPin className="w-3.5 h-3.5 text-[#666666]" />
                 {prospect.address}
               </span>
             )}
@@ -392,14 +392,14 @@ function ProspectRow({
                 href={prospect.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 hover:text-[#10B981] transition-colors"
+                className="flex items-center gap-1.5 hover:text-[#22C55E] transition-colors"
               >
-                <Globe className="w-3.5 h-3.5 text-[#10B981]" />
+                <Globe className="w-3.5 h-3.5 text-[#22C55E]" />
                 {prospect.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
               </a>
             )}
             {prospect.siren && (
-              <span className="flex items-center gap-1.5 font-mono text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
+              <span className="flex items-center gap-1.5 font-mono text-xs text-[#aaaaaa] bg-[#111111] border border-[#1e1e1e] px-2 py-0.5 rounded-full">
                 {prospect.siren}
                 {prospect.naf_label && ` · ${prospect.naf_label}`}
               </span>
@@ -414,19 +414,19 @@ function ProspectRow({
                 onChange={(e) => onNoteChange(prospect.id, e.target.value)}
                 placeholder="Ajouter une note..."
                 rows={3}
-                className="w-full bg-[#0F172A] border border-white/10 rounded-lg text-white text-sm px-3 py-2 placeholder-slate-600 focus:outline-none focus:border-[#8B5CF6] resize-none"
+                className="w-full bg-black border border-[#1a1a1a] rounded-[9px] text-white text-sm px-3 py-2 placeholder-[#333333] focus:outline-none focus:border-[#E5000A] resize-none"
                 autoFocus
               />
               <div className="flex gap-2">
                 <button
                   onClick={() => onSaveNote(prospect.id)}
-                  className="text-xs bg-[#8B5CF6] hover:bg-[#7C3AED] text-white px-3 py-1.5 rounded-lg transition-colors"
+                  className="text-xs bg-[#E5000A] hover:bg-[#CC0000] text-white px-3 py-1.5 rounded-[9px] transition-colors"
                 >
                   Enregistrer
                 </button>
                 <button
                   onClick={onCancelNote}
-                  className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors"
+                  className="text-xs text-[#aaaaaa] hover:text-white px-3 py-1.5 rounded-[9px] transition-colors"
                 >
                   Annuler
                 </button>
@@ -435,7 +435,7 @@ function ProspectRow({
           ) : (
             <button
               onClick={() => onEditNote(prospect.id)}
-              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors mt-1"
+              className="flex items-center gap-1.5 text-sm text-[#666666] hover:text-[#aaaaaa] transition-colors mt-1"
             >
               <FileText className="w-3.5 h-3.5" />
               {prospect.note ? (
@@ -453,17 +453,17 @@ function ProspectRow({
             <select
               value={prospect.status}
               onChange={(e) => onStatusChange(prospect.id, e.target.value as Status)}
-              className={`appearance-none pl-3 pr-8 py-1.5 rounded-lg border text-xs font-medium cursor-pointer focus:outline-none ${STATUS_COLORS[prospect.status]}`}
+              className={`appearance-none pl-3 pr-8 py-1.5 rounded-[9px] border text-xs font-medium cursor-pointer focus:outline-none ${STATUS_COLORS[prospect.status]}`}
             >
               {STATUSES.map((s) => (
-                <option key={s} value={s} className="bg-[#1E293B] text-white">{s}</option>
+                <option key={s} value={s} className="bg-[#0d0d0d] text-white">{s}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" />
           </div>
           <button
             onClick={() => onDelete(prospect.id)}
-            className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            className="p-1.5 rounded-[9px] text-[#333333] hover:text-red-400 hover:bg-red-500/10 transition-colors"
             title="Supprimer"
           >
             <Trash2 className="w-4 h-4" />
