@@ -1,24 +1,107 @@
 @import "tailwindcss";
 
+/* =====================================================
+   DESIGN TOKENS — LeadGen Design System
+   ===================================================== */
 :root {
+  /* Surfaces */
+  --color-bg:              #000000;
+  --color-surface:         #0d0d0d;
+  --color-surface-hover:   #111111;
+  --color-surface-strong:  #1a1a1a;
+
+  /* Borders */
+  --color-border:          #1a1a1a;
+  --color-border-strong:   #2a2a2a;
+
+  /* Text */
+  --color-text-primary:    #ffffff;
+  --color-text-secondary:  #aaaaaa;
+  --color-text-tertiary:   #666666;
+  --color-text-muted:      #333333;
+
+  /* Brand — Rouge */
+  --color-primary:         #E5000A;
+  --color-primary-hover:   #CC0000;
+  --color-primary-subtle:  #160002;
+  --color-primary-border:  #3a0002;
+
+  /* Success — Vert */
+  --color-success:         #22C55E;
+  --color-success-hover:   #16a34a;
+  --color-success-subtle:  #001a05;
+
+  /* Warning — Amber */
+  --color-warning:         #F59E0B;
+  --color-warning-subtle:  rgba(245, 158, 11, 0.08);
+  --color-warning-border:  rgba(245, 158, 11, 0.25);
+
+  /* Danger — Rouge clair */
+  --color-danger:          #ef4444;
+  --color-danger-subtle:   rgba(239, 68, 68, 0.08);
+  --color-danger-border:   rgba(239, 68, 68, 0.25);
+
+  /* Border Radius */
+  --radius-sm:   6px;
+  --radius-md:   9px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-subtle:   0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-medium:   0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.7);
+  --shadow-primary:  0 8px 24px rgba(229, 0, 10, 0.25);
+
+  /* Legacy (compatibilité) */
   --background: #000000;
   --foreground: #ffffff;
-  --accent: #E5000A;
-  --success: #22C55E;
+  --accent:     #E5000A;
+  --success:    #22C55E;
 }
 
+/* =====================================================
+   BASE
+   ===================================================== */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  /* Stack système premium : SF Pro (Apple) → Segoe UI (Windows) → sans-serif */
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    'SF Pro Display',
+    'Segoe UI',
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* Focus visible global */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Supprime l'outline par défaut au profit du focus-visible */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* =====================================================
+   SCROLLBAR
+   ===================================================== */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: #0d0d0d;
@@ -28,5 +111,153 @@ body {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #E5000A;
+  background: var(--color-primary);
 }
+
+/* =====================================================
+   ANIMATIONS & KEYFRAMES
+   ===================================================== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(16px); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* =====================================================
+   UTILITY ANIMATION CLASSES
+   ===================================================== */
+.animate-fade-in     { animation: fadeIn 0.3s ease both; }
+.animate-fade-in-up  { animation: fadeInUp 0.4s ease both; }
+.animate-slide-down  { animation: slideDown 0.25s ease both; }
+.animate-slide-up    { animation: slideUp 0.25s ease both; }
+.animate-toast-in    { animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-count-up    { animation: countUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* Stagger delays pour grilles de cards */
+.stagger-1  { animation-delay: 0.04s; }
+.stagger-2  { animation-delay: 0.08s; }
+.stagger-3  { animation-delay: 0.12s; }
+.stagger-4  { animation-delay: 0.16s; }
+.stagger-5  { animation-delay: 0.20s; }
+.stagger-6  { animation-delay: 0.24s; }
+.stagger-7  { animation-delay: 0.28s; }
+.stagger-8  { animation-delay: 0.32s; }
+.stagger-9  { animation-delay: 0.36s; }
+.stagger-10 { animation-delay: 0.40s; }
+.stagger-11 { animation-delay: 0.44s; }
+.stagger-12 { animation-delay: 0.48s; }
+
+/* =====================================================
+   SKELETON SHIMMER
+   ===================================================== */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #111111 25%,
+    #1d1d1d 50%,
+    #111111 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* =====================================================
+   MICRO-INTERACTIONS
+   ===================================================== */
+
+/* Feedback tactile sur les boutons */
+button:active:not(:disabled),
+a:active:not([aria-disabled="true"]) {
+  transform: scale(0.98);
+  transition: transform 0.08s ease;
+}
+
+/* Transitions globales pour les éléments interactifs */
+button, a, input, select, textarea {
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* =====================================================
+   SELECT — APPARENCE CROSS-BROWSER
+   ===================================================== */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* =====================================================
+   TYPOGRAPHIE — Échelle cohérente
+   ===================================================== */
+
+/* Classes utilitaires pour la hiérarchie visuelle */
+.heading-display {
+  font-size: 2.5rem;      /* 40px */
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.heading-1 {
+  font-size: 2rem;        /* 32px */
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.heading-2 {
+  font-size: 1.5rem;      /* 24px */
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.heading-3 {
+  font-size: 1.125rem;    /* 18px */
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.body-lg { font-size: 1rem;    line-height: 1.6; }
+.body    { font-size: 0.875rem; line-height: 1.5; }
+.body-sm { font-size: 0.8125rem; line-height: 1.5; }
+.label   { font-size: 0.75rem;  line-height: 1.4; font-weight: 500; }

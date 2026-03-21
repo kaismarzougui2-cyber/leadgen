@@ -7,6 +7,7 @@ import {
   Search,
   LogOut,
   Phone,
+  PhoneCall,
   MapPin,
   Star,
   ChevronDown,
@@ -15,9 +16,12 @@ import {
   Globe,
   Download,
   Settings,
+  CheckCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { useToast } from "@/components/ui/Toast";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const STATUSES = [
   "À appeler",
@@ -48,12 +52,12 @@ interface Prospect {
 }
 
 const STATUS_COLORS: Record<Status, string> = {
-  "À appeler": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  "A répondu": "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-  "Réfléchit": "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  "Pas intéressé": "bg-red-500/20 text-red-400 border-red-500/30",
-  "Intéressé": "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-  "À rappeler": "bg-[#160002] text-[#E5000A] border-[#3a0002]",
+  "À appeler":      "bg-blue-500/15 text-blue-400 border-blue-500/25",
+  "A répondu":      "bg-cyan-500/15 text-cyan-400 border-cyan-500/25",
+  "Réfléchit":      "bg-amber-500/15 text-amber-400 border-amber-500/25",
+  "Pas intéressé":  "bg-red-500/15  text-red-400  border-red-500/25",
+  "Intéressé":      "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
+  "À rappeler":     "bg-[#160002] text-[#E5000A] border-[#3a0002]",
 };
 
 export default function CrmClient({
@@ -73,6 +77,7 @@ export default function CrmClient({
   const [noteValues, setNoteValues] = useState<Record<string, string>>({});
 
   const supabase = createClient();
+  const { toast } = useToast();
 
   function exportCSV() {
     const headers = ["Nom", "Téléphone", "Adresse", "Note Google", "Site web", "Statut", "SIREN", "Activité", "Commentaire", "Date d'ajout"];
@@ -98,6 +103,7 @@ export default function CrmClient({
     a.download = `leadvibe-prospects-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    toast(`Export CSV de ${filtered.length} prospect${filtered.length !== 1 ? "s" : ""} téléchargé`, "success");
   }
 
   async function handleLogout() {
@@ -107,19 +113,43 @@ export default function CrmClient({
 
   async function updateStatus(id: string, status: Status) {
     setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
-    await supabase.from("prospects").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase
+      .from("prospects")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      toast("Erreur lors de la mise à jour du statut", "error");
+    } else {
+      toast(`Statut mis à jour : ${status}`, "success");
+    }
   }
 
   async function saveNote(id: string) {
     const note = noteValues[id] ?? "";
     setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, note } : p)));
     setEditingNote(null);
-    await supabase.from("prospects").update({ note, updated_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase
+      .from("prospects")
+      .update({ note, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      toast("Erreur lors de l'enregistrement de la note", "error");
+    } else {
+      toast("Note enregistrée", "success");
+    }
   }
 
   async function deleteProspect(id: string) {
+    const prospect = prospects.find((p) => p.id === id);
     setProspects((prev) => prev.filter((p) => p.id !== id));
-    await supabase.from("prospects").delete().eq("id", id);
+    const { error } = await supabase.from("prospects").delete().eq("id", id);
+    if (error) {
+      toast("Erreur lors de la suppression", "error");
+      // Rollback
+      if (prospect) setProspects((prev) => [prospect, ...prev]);
+    } else {
+      toast(`${prospect?.name ?? "Prospect"} supprimé`, "info");
+    }
   }
 
   const uniqueCities = Array.from(new Set(prospects.map((p) => p.query_city).filter(Boolean))) as string[];
@@ -139,34 +169,44 @@ export default function CrmClient({
 
   return (
     <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0">
-      {/* Navbar */}
-      <nav className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between">
+
+      {/* ── Navbar ─────────────────────────────────────────── */}
+      <nav className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between sticky top-0 bg-black/95 backdrop-blur-sm z-40">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center shadow-[0_0_12px_rgba(229,0,10,0.3)]">
               <Zap className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold text-white">LeadGen</span>
+            <span className="text-xl font-bold text-white tracking-tight">LeadGen</span>
           </div>
           <div className="hidden sm:flex items-center gap-1">
-            <Link href="/dashboard" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors">
+            <Link
+              href="/dashboard"
+              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors"
+            >
               Recherche
             </Link>
-            <Link href="/crm" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-white bg-[#1a1a1a] flex items-center gap-1.5">
+            <Link
+              href="/crm"
+              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-white bg-[#1a1a1a] flex items-center gap-1.5"
+            >
               <Users className="w-3.5 h-3.5" />
               CRM
             </Link>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-[#aaaaaa] hidden sm:block">{userEmail}</span>
-          <Link href="/account" className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-[#666666] hidden sm:block truncate max-w-[160px]">{userEmail}</span>
+          <Link
+            href="/account"
+            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors p-1.5 rounded-[9px] hover:bg-[#111111] min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:justify-start"
+          >
             <Settings className="w-4 h-4" />
             <span className="hidden sm:block">Compte</span>
           </Link>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors"
+            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors p-1.5 rounded-[9px] hover:bg-[#111111] min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:justify-start"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:block">Déconnexion</span>
@@ -174,43 +214,46 @@ export default function CrmClient({
         </div>
       </nav>
 
-      {/* Mobile bottom tab bar */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-[#1a1a1a] flex">
+      {/* ── Mobile bottom tab bar ──────────────────────────── */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-t border-[#1a1a1a] flex">
         <Link
           href="/dashboard"
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#aaaaaa] active:bg-[#111111]"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#666666] active:bg-[#111111]"
         >
           <Search className="w-5 h-5" />
           <span className="text-xs font-medium">Recherche</span>
         </Link>
         <Link
           href="/crm"
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#E5000A] bg-[#160002]"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#E5000A] bg-[#160002]"
         >
           <Users className="w-5 h-5" />
-          <span className="text-xs font-medium">Mon CRM</span>
+          <span className="text-xs font-semibold">Mon CRM</span>
         </Link>
         <button
           onClick={handleLogout}
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#aaaaaa] active:bg-[#111111]"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#666666] active:bg-[#111111]"
         >
           <LogOut className="w-5 h-5" />
-          <span className="text-xs font-medium">Déco</span>
+          <span className="text-xs font-medium">Déco.</span>
         </button>
       </div>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-10 space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-10 space-y-8">
+
+        {/* ── Header ─────────────────────────────────────── */}
+        <div className="flex items-center justify-between flex-wrap gap-4 animate-fade-in">
           <div>
-            <h1 className="text-3xl font-bold text-white">Mon CRM</h1>
-            <p className="text-[#aaaaaa] mt-1">{prospects.length} prospect{prospects.length !== 1 ? "s" : ""} sauvegardé{prospects.length !== 1 ? "s" : ""}</p>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Mon CRM</h1>
+            <p className="text-[#aaaaaa] mt-1">
+              {prospects.length} prospect{prospects.length !== 1 ? "s" : ""} sauvegardé{prospects.length !== 1 ? "s" : ""}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             {prospects.length > 0 && (
               <button
                 onClick={exportCSV}
-                className="flex items-center gap-2 bg-[#0d0d0d] hover:bg-[#1a1a1a] border border-[#1a1a1a] text-white font-medium px-4 py-2 rounded-[9px] transition-colors text-sm"
+                className="flex items-center gap-2 bg-[#0d0d0d] hover:bg-[#1a1a1a] border border-[#1a1a1a] hover:border-[#2a2a2a] text-white font-medium px-4 py-2.5 rounded-[9px] transition-colors text-sm min-h-[44px]"
               >
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:block">Exporter CSV</span>
@@ -218,7 +261,7 @@ export default function CrmClient({
             )}
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 bg-[#E5000A] hover:bg-[#CC0000] text-white font-medium px-4 py-2 rounded-[9px] transition-colors text-sm"
+              className="flex items-center gap-2 bg-[#E5000A] hover:bg-[#CC0000] text-white font-semibold px-4 py-2.5 rounded-[9px] transition-colors text-sm min-h-[44px] shadow-[0_2px_8px_rgba(229,0,10,0.25)]"
             >
               <Search className="w-4 h-4" />
               <span className="hidden sm:block">Nouvelle recherche</span>
@@ -226,76 +269,89 @@ export default function CrmClient({
           </div>
         </div>
 
-        {/* Status summary cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* ── Compteurs par statut ────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 animate-fade-in" style={{ animationDelay: "0.05s" }}>
           {STATUSES.map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(filterStatus === s ? "Tous" : s)}
-              className={`p-3 rounded-[12px] border text-left transition-all ${
+              className={`p-3 rounded-[12px] border text-left transition-all min-h-[72px] ${
                 filterStatus === s
-                  ? STATUS_COLORS[s] + " border-opacity-100"
-                  : "bg-[#0d0d0d] border-[#1a1a1a] hover:border-[#2a2a2a]"
+                  ? STATUS_COLORS[s]
+                  : "bg-[#0d0d0d] border-[#1a1a1a] hover:border-[#2a2a2a] hover:bg-[#111111]"
               }`}
             >
               <p className="text-2xl font-bold text-white">{countByStatus(s)}</p>
-              <p className="text-xs text-[#aaaaaa] mt-0.5">{s}</p>
+              <p className="text-xs text-[#aaaaaa] mt-0.5 leading-tight">{s}</p>
             </button>
           ))}
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+        {/* ── Filtres ─────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row gap-3 flex-wrap animate-fade-in" style={{ animationDelay: "0.1s" }}>
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher un prospect..."
-              className="w-full pl-10 pr-4 py-2.5 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white placeholder-[#666666] focus:outline-none focus:border-[#E5000A] text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white placeholder-[#666666] focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] text-sm min-h-[44px]"
             />
           </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as Status | "Tous")}
-            className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#E5000A]"
-          >
-            <option value="Tous">Tous les statuts</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+
+          <div className="relative">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as Status | "Tous")}
+              className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] min-h-[44px] w-full sm:w-auto"
+            >
+              <option value="Tous">Tous les statuts</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666] pointer-events-none" />
+          </div>
+
           {uniqueCities.length > 0 && (
-            <select
-              value={filterCity}
-              onChange={(e) => setFilterCity(e.target.value)}
-              className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#E5000A]"
-            >
-              <option value="">Toutes les villes</option>
-              {uniqueCities.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={filterCity}
+                onChange={(e) => setFilterCity(e.target.value)}
+                className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] min-h-[44px] w-full sm:w-auto"
+              >
+                <option value="">Toutes les villes</option>
+                {uniqueCities.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666] pointer-events-none" />
+            </div>
           )}
+
           {uniqueJobs.length > 0 && (
-            <select
-              value={filterJob}
-              onChange={(e) => setFilterJob(e.target.value)}
-              className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white px-4 py-2.5 text-sm focus:outline-none focus:border-[#E5000A]"
-            >
-              <option value="">Tous les métiers</option>
-              {uniqueJobs.map((j) => (
-                <option key={j} value={j}>{j}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={filterJob}
+                onChange={(e) => setFilterJob(e.target.value)}
+                className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] min-h-[44px] w-full sm:w-auto"
+              >
+                <option value="">Tous les métiers</option>
+                {uniqueJobs.map((j) => (
+                  <option key={j} value={j}>{j}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666] pointer-events-none" />
+            </div>
           )}
+
           <button
             onClick={() => setFilterNoWebsite((v) => !v)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] border text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] border text-sm font-medium transition-colors min-h-[44px] ${
               filterNoWebsite
                 ? "bg-[#160002] border-[#3a0002] text-[#E5000A]"
-                : "bg-[#0d0d0d] border-[#1a1a1a] text-[#aaaaaa] hover:text-white"
+                : "bg-[#0d0d0d] border-[#1a1a1a] text-[#aaaaaa] hover:text-white hover:border-[#2a2a2a]"
             }`}
           >
             <Globe className="w-4 h-4" />
@@ -303,35 +359,55 @@ export default function CrmClient({
           </button>
         </div>
 
-        {/* Table */}
+        {/* ── Liste prospects ─────────────────────────────── */}
         {filtered.length === 0 ? (
-          <div className="text-center py-20 text-[#666666]">
-            <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="text-lg">Aucun prospect trouvé</p>
-            <p className="text-sm mt-1">
-              {prospects.length === 0
-                ? "Faites une recherche et sauvegardez des prospects."
-                : "Modifiez vos filtres."}
-            </p>
-          </div>
+          prospects.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="Aucun prospect sauvegardé"
+              description="Lancez une recherche pour trouver des leads qualifiés et les ajouter à votre CRM."
+              action={{ label: "Faire une recherche", href: "/dashboard" }}
+            />
+          ) : (
+            <EmptyState
+              icon={Search}
+              title="Aucun résultat"
+              description="Aucun prospect ne correspond à vos filtres. Modifiez ou réinitialisez les filtres."
+              action={{
+                label: "Réinitialiser les filtres",
+                onClick: () => {
+                  setFilterStatus("Tous");
+                  setFilterNoWebsite(false);
+                  setFilterCity("");
+                  setFilterJob("");
+                  setSearch("");
+                },
+              }}
+            />
+          )
         ) : (
           <div className="space-y-3">
-            {filtered.map((prospect) => (
-              <ProspectRow
+            {filtered.map((prospect, index) => (
+              <div
                 key={prospect.id}
-                prospect={prospect}
-                editingNote={editingNote}
-                noteValue={noteValues[prospect.id] ?? prospect.note}
-                onStatusChange={updateStatus}
-                onEditNote={(id) => {
-                  setEditingNote(id);
-                  setNoteValues((prev) => ({ ...prev, [id]: prospect.note }));
-                }}
-                onNoteChange={(id, val) => setNoteValues((prev) => ({ ...prev, [id]: val }))}
-                onSaveNote={saveNote}
-                onCancelNote={() => setEditingNote(null)}
-                onDelete={deleteProspect}
-              />
+                className="animate-fade-in"
+                style={{ animationDelay: `${Math.min(index * 0.04, 0.3)}s` }}
+              >
+                <ProspectRow
+                  prospect={prospect}
+                  editingNote={editingNote}
+                  noteValue={noteValues[prospect.id] ?? prospect.note}
+                  onStatusChange={updateStatus}
+                  onEditNote={(id) => {
+                    setEditingNote(id);
+                    setNoteValues((prev) => ({ ...prev, [id]: prospect.note }));
+                  }}
+                  onNoteChange={(id, val) => setNoteValues((prev) => ({ ...prev, [id]: val }))}
+                  onSaveNote={saveNote}
+                  onCancelNote={() => setEditingNote(null)}
+                  onDelete={deleteProspect}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -340,6 +416,7 @@ export default function CrmClient({
   );
 }
 
+/* ─── ProspectRow ────────────────────────────────────────────── */
 function ProspectRow({
   prospect,
   editingNote,
@@ -364,29 +441,40 @@ function ProspectRow({
   const isEditingThis = editingNote === prospect.id;
 
   return (
-    <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] p-5 hover:border-[#2a2a2a] transition-colors">
+    <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] p-4 sm:p-5 hover:border-[#2a2a2a] transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-        {/* Info */}
-        <div className="flex-1 space-y-2 min-w-0">
-          <h3 className="font-semibold text-white">{prospect.name}</h3>
 
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-[#aaaaaa]">
-            <a href={`tel:${prospect.phone}`} className="flex items-center gap-1.5 hover:text-[#E5000A] transition-colors">
+        {/* ── Infos prospect ─── */}
+        <div className="flex-1 space-y-2 min-w-0">
+          <h3 className="font-semibold text-white leading-tight">{prospect.name}</h3>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-[#aaaaaa]">
+            {/* Téléphone */}
+            <a
+              href={`tel:${prospect.phone}`}
+              className="flex items-center gap-1.5 hover:text-[#E5000A] transition-colors font-medium"
+            >
               <Phone className="w-3.5 h-3.5 text-[#E5000A]" />
               {prospect.phone}
             </a>
+
+            {/* Adresse */}
             {prospect.address && (
               <span className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-[#666666]" />
                 {prospect.address}
               </span>
             )}
+
+            {/* Note Google */}
             {prospect.rating !== null && (
               <span className="flex items-center gap-1">
                 <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                <span className="text-amber-400">{prospect.rating}</span>
+                <span className="text-amber-400 font-semibold">{prospect.rating}</span>
               </span>
             )}
+
+            {/* Site web */}
             {prospect.website && (
               <a
                 href={prospect.website}
@@ -398,6 +486,8 @@ function ProspectRow({
                 {prospect.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
               </a>
             )}
+
+            {/* SIREN */}
             {prospect.siren && (
               <span className="flex items-center gap-1.5 font-mono text-xs text-[#aaaaaa] bg-[#111111] border border-[#1e1e1e] px-2 py-0.5 rounded-full">
                 {prospect.siren}
@@ -414,19 +504,20 @@ function ProspectRow({
                 onChange={(e) => onNoteChange(prospect.id, e.target.value)}
                 placeholder="Ajouter une note..."
                 rows={3}
-                className="w-full bg-black border border-[#1a1a1a] rounded-[9px] text-white text-sm px-3 py-2 placeholder-[#333333] focus:outline-none focus:border-[#E5000A] resize-none"
+                className="w-full bg-black border border-[#1a1a1a] rounded-[9px] text-white text-sm px-3 py-2.5 placeholder-[#333333] focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] resize-none"
                 autoFocus
               />
               <div className="flex gap-2">
                 <button
                   onClick={() => onSaveNote(prospect.id)}
-                  className="text-xs bg-[#E5000A] hover:bg-[#CC0000] text-white px-3 py-1.5 rounded-[9px] transition-colors"
+                  className="flex items-center gap-1.5 text-xs bg-[#E5000A] hover:bg-[#CC0000] text-white px-4 py-2 rounded-[9px] transition-colors font-semibold min-h-[36px]"
                 >
+                  <CheckCircle className="w-3.5 h-3.5" />
                   Enregistrer
                 </button>
                 <button
                   onClick={onCancelNote}
-                  className="text-xs text-[#aaaaaa] hover:text-white px-3 py-1.5 rounded-[9px] transition-colors"
+                  className="text-xs text-[#aaaaaa] hover:text-white px-4 py-2 rounded-[9px] transition-colors border border-[#1a1a1a] hover:border-[#2a2a2a] min-h-[36px]"
                 >
                   Annuler
                 </button>
@@ -435,9 +526,9 @@ function ProspectRow({
           ) : (
             <button
               onClick={() => onEditNote(prospect.id)}
-              className="flex items-center gap-1.5 text-sm text-[#666666] hover:text-[#aaaaaa] transition-colors mt-1"
+              className="flex items-center gap-1.5 text-sm text-[#666666] hover:text-[#aaaaaa] transition-colors mt-1 min-h-[36px] text-left"
             >
-              <FileText className="w-3.5 h-3.5" />
+              <FileText className="w-3.5 h-3.5 shrink-0" />
               {prospect.note ? (
                 <span className="line-clamp-1">{prospect.note}</span>
               ) : (
@@ -447,24 +538,37 @@ function ProspectRow({
           )}
         </div>
 
-        {/* Status + Actions */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* ── Actions droite ─── */}
+        <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
+          {/* Bouton Appeler */}
+          <a
+            href={`tel:${prospect.phone}`}
+            className="flex items-center gap-1.5 bg-[#E5000A] hover:bg-[#CC0000] text-white text-xs font-bold px-3 py-2 rounded-[9px] transition-colors min-h-[44px] min-w-[44px] justify-center shadow-[0_2px_8px_rgba(229,0,10,0.2)]"
+            title={`Appeler ${prospect.name}`}
+          >
+            <PhoneCall className="w-4 h-4" />
+            <span className="hidden sm:block">Appeler</span>
+          </a>
+
+          {/* Statut */}
           <div className="relative">
             <select
               value={prospect.status}
               onChange={(e) => onStatusChange(prospect.id, e.target.value as Status)}
-              className={`appearance-none pl-3 pr-8 py-1.5 rounded-[9px] border text-xs font-medium cursor-pointer focus:outline-none ${STATUS_COLORS[prospect.status]}`}
+              className={`appearance-none pl-3 pr-8 py-2 rounded-[9px] border text-xs font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#E5000A] min-h-[44px] ${STATUS_COLORS[prospect.status]}`}
             >
               {STATUSES.map((s) => (
-                <option key={s} value={s} className="bg-[#0d0d0d] text-white">{s}</option>
+                <option key={s} value={s} className="bg-[#0d0d0d] text-white font-normal">{s}</option>
               ))}
             </select>
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" />
           </div>
+
+          {/* Supprimer */}
           <button
             onClick={() => onDelete(prospect.id)}
-            className="p-1.5 rounded-[9px] text-[#333333] hover:text-red-400 hover:bg-red-500/10 transition-colors"
-            title="Supprimer"
+            className="p-2.5 rounded-[9px] text-[#333333] hover:text-red-400 hover:bg-red-500/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            title="Supprimer ce prospect"
           >
             <Trash2 className="w-4 h-4" />
           </button>
