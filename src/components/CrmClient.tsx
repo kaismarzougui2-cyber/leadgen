@@ -10,13 +10,14 @@ import {
   PhoneCall,
   MapPin,
   Star,
-  ChevronDown,
   FileText,
-  Trash2,
   Globe,
   Download,
   Settings,
   CheckCircle,
+  Calendar,
+  X,
+  Briefcase,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -49,6 +50,7 @@ interface Prospect {
   naf_label?: string | null;
   query_city?: string | null;
   query_job?: string | null;
+  callback_at?: string | null;
 }
 
 const STATUS_COLORS: Record<Status, string> = {
@@ -59,6 +61,16 @@ const STATUS_COLORS: Record<Status, string> = {
   "Intéressé":      "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
   "À rappeler":     "bg-[#160002] text-[#E5000A] border-[#3a0002]",
 };
+
+/** Emoji + libellé court pour chaque statut */
+const STATUS_ACTIONS: { status: Status; emoji: string; short: string }[] = [
+  { status: "À appeler",     emoji: "📞", short: "Appeler"  },
+  { status: "A répondu",     emoji: "✅", short: "Répondu"  },
+  { status: "Réfléchit",     emoji: "💭", short: "Réfléchit"},
+  { status: "À rappeler",    emoji: "🔔", short: "Rappeler" },
+  { status: "Intéressé",     emoji: "⭐", short: "Intéressé"},
+  { status: "Pas intéressé", emoji: "❌", short: "Non"      },
+];
 
 export default function CrmClient({
   initialProspects,
@@ -80,7 +92,7 @@ export default function CrmClient({
   const { toast } = useToast();
 
   function exportCSV() {
-    const headers = ["Nom", "Téléphone", "Adresse", "Note Google", "Site web", "Statut", "SIREN", "Activité", "Commentaire", "Date d'ajout"];
+    const headers = ["Nom", "Téléphone", "Adresse", "Note Google", "Site web", "Statut", "SIREN", "Activité", "Commentaire", "Date d'ajout", "Rappel le"];
     const rows = filtered.map((p) => [
       p.name,
       p.phone,
@@ -92,6 +104,7 @@ export default function CrmClient({
       p.naf_label ?? "",
       p.note,
       new Date(p.created_at).toLocaleDateString("fr-FR"),
+      p.callback_at ? new Date(p.callback_at).toLocaleString("fr-FR") : "",
     ]);
     const csv = [headers, ...rows]
       .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"))
@@ -124,6 +137,20 @@ export default function CrmClient({
     }
   }
 
+  async function saveCallbackAt(id: string, value: string) {
+    const callback_at = value ? new Date(value).toISOString() : null;
+    setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, callback_at } : p)));
+    const { error } = await supabase
+      .from("prospects")
+      .update({ callback_at, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      toast("Erreur lors de la sauvegarde du rappel", "error");
+    } else {
+      toast(callback_at ? `Rappel programmé : ${new Date(callback_at).toLocaleString("fr-FR")}` : "Rappel supprimé", "success");
+    }
+  }
+
   async function saveNote(id: string) {
     const note = noteValues[id] ?? "";
     setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, note } : p)));
@@ -145,7 +172,6 @@ export default function CrmClient({
     const { error } = await supabase.from("prospects").delete().eq("id", id);
     if (error) {
       toast("Erreur lors de la suppression", "error");
-      // Rollback
       if (prospect) setProspects((prev) => [prospect, ...prev]);
     } else {
       toast(`${prospect?.name ?? "Prospect"} supprimé`, "info");
@@ -153,19 +179,26 @@ export default function CrmClient({
   }
 
   const uniqueCities = Array.from(new Set(prospects.map((p) => p.query_city).filter(Boolean))) as string[];
-  const uniqueJobs = Array.from(new Set(prospects.map((p) => p.query_job).filter(Boolean))) as string[];
+  const uniqueJobs  = Array.from(new Set(prospects.map((p) => p.query_job).filter(Boolean))) as string[];
 
   const filtered = prospects.filter((p) => {
     const matchStatus = filterStatus === "Tous" || p.status === filterStatus;
     const q = search.toLowerCase();
-    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.phone.includes(q) || (p.address ?? "").toLowerCase().includes(q);
+    const matchSearch =
+      !q ||
+      p.name.toLowerCase().includes(q) ||
+      p.phone.includes(q) ||
+      (p.address ?? "").toLowerCase().includes(q) ||
+      (p.query_city ?? "").toLowerCase().includes(q) ||
+      (p.query_job ?? "").toLowerCase().includes(q);
     const matchNoWebsite = !filterNoWebsite || !p.website;
     const matchCity = !filterCity || p.query_city === filterCity;
-    const matchJob = !filterJob || p.query_job === filterJob;
+    const matchJob  = !filterJob  || p.query_job  === filterJob;
     return matchStatus && matchSearch && matchNoWebsite && matchCity && matchJob;
   });
 
   const countByStatus = (s: Status) => prospects.filter((p) => p.status === s).length;
+  const hasActiveFilters = filterStatus !== "Tous" || filterNoWebsite || filterCity || filterJob || search;
 
   return (
     <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0">
@@ -288,75 +321,102 @@ export default function CrmClient({
         </div>
 
         {/* ── Filtres ─────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row gap-3 flex-wrap animate-fade-in" style={{ animationDelay: "0.1s" }}>
-          <div className="relative flex-1 min-w-[200px]">
+        <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+          {/* Barre de recherche */}
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher un prospect..."
+              placeholder="Rechercher par nom, téléphone, ville, métier..."
               className="w-full pl-10 pr-4 py-2.5 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white placeholder-[#666666] focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] text-sm min-h-[44px]"
             />
           </div>
 
-          <div className="relative">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as Status | "Tous")}
-              className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] min-h-[44px] w-full sm:w-auto"
+          {/* Filtres ville + métier en pills */}
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Filtre villes */}
+            {uniqueCities.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="flex items-center gap-1 text-xs text-[#555555] shrink-0">
+                  <MapPin className="w-3 h-3" /> Villes :
+                </span>
+                {uniqueCities.map((city) => (
+                  <button
+                    key={city}
+                    onClick={() => setFilterCity(filterCity === city ? "" : city)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                      filterCity === city
+                        ? "bg-blue-500/15 text-blue-400 border-blue-500/35"
+                        : "bg-[#0d0d0d] text-[#aaaaaa] border-[#1a1a1a] hover:border-[#2a2a2a] hover:text-white"
+                    }`}
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Filtre métiers */}
+            {uniqueJobs.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="flex items-center gap-1 text-xs text-[#555555] shrink-0">
+                  <Briefcase className="w-3 h-3" /> Métiers :
+                </span>
+                {uniqueJobs.map((job) => (
+                  <button
+                    key={job}
+                    onClick={() => setFilterJob(filterJob === job ? "" : job)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                      filterJob === job
+                        ? "bg-amber-500/15 text-amber-400 border-amber-500/35"
+                        : "bg-[#0d0d0d] text-[#aaaaaa] border-[#1a1a1a] hover:border-[#2a2a2a] hover:text-white"
+                    }`}
+                  >
+                    {job}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Filtre sans site web */}
+            <button
+              onClick={() => setFilterNoWebsite((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium transition-colors ${
+                filterNoWebsite
+                  ? "bg-[#160002] border-[#3a0002] text-[#E5000A]"
+                  : "bg-[#0d0d0d] border-[#1a1a1a] text-[#aaaaaa] hover:text-white hover:border-[#2a2a2a]"
+              }`}
             >
-              <option value="Tous">Tous les statuts</option>
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666] pointer-events-none" />
+              <Globe className="w-3 h-3" />
+              Sans site web
+            </button>
+
+            {/* Reset filtres */}
+            {hasActiveFilters && (
+              <button
+                onClick={() => {
+                  setFilterStatus("Tous");
+                  setFilterNoWebsite(false);
+                  setFilterCity("");
+                  setFilterJob("");
+                  setSearch("");
+                }}
+                className="flex items-center gap-1 px-3 py-1 rounded-full border border-[#1a1a1a] text-xs text-[#666666] hover:text-white hover:border-[#2a2a2a] transition-colors"
+              >
+                <X className="w-3 h-3" />
+                Effacer tout
+              </button>
+            )}
           </div>
 
-          {uniqueCities.length > 0 && (
-            <div className="relative">
-              <select
-                value={filterCity}
-                onChange={(e) => setFilterCity(e.target.value)}
-                className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] min-h-[44px] w-full sm:w-auto"
-              >
-                <option value="">Toutes les villes</option>
-                {uniqueCities.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666] pointer-events-none" />
-            </div>
+          {/* Résultat du filtre */}
+          {hasActiveFilters && (
+            <p className="text-xs text-[#555555]">
+              {filtered.length} résultat{filtered.length !== 1 ? "s" : ""} sur {prospects.length}
+            </p>
           )}
-
-          {uniqueJobs.length > 0 && (
-            <div className="relative">
-              <select
-                value={filterJob}
-                onChange={(e) => setFilterJob(e.target.value)}
-                className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-white pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A] min-h-[44px] w-full sm:w-auto"
-              >
-                <option value="">Tous les métiers</option>
-                {uniqueJobs.map((j) => (
-                  <option key={j} value={j}>{j}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666] pointer-events-none" />
-            </div>
-          )}
-
-          <button
-            onClick={() => setFilterNoWebsite((v) => !v)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] border text-sm font-medium transition-colors min-h-[44px] ${
-              filterNoWebsite
-                ? "bg-[#160002] border-[#3a0002] text-[#E5000A]"
-                : "bg-[#0d0d0d] border-[#1a1a1a] text-[#aaaaaa] hover:text-white hover:border-[#2a2a2a]"
-            }`}
-          >
-            <Globe className="w-4 h-4" />
-            Sans site web
-          </button>
         </div>
 
         {/* ── Liste prospects ─────────────────────────────── */}
@@ -398,6 +458,7 @@ export default function CrmClient({
                   editingNote={editingNote}
                   noteValue={noteValues[prospect.id] ?? prospect.note}
                   onStatusChange={updateStatus}
+                  onCallbackChange={saveCallbackAt}
                   onEditNote={(id) => {
                     setEditingNote(id);
                     setNoteValues((prev) => ({ ...prev, [id]: prospect.note }));
@@ -422,6 +483,7 @@ function ProspectRow({
   editingNote,
   noteValue,
   onStatusChange,
+  onCallbackChange,
   onEditNote,
   onNoteChange,
   onSaveNote,
@@ -432,6 +494,7 @@ function ProspectRow({
   editingNote: string | null;
   noteValue: string;
   onStatusChange: (id: string, status: Status) => void;
+  onCallbackChange: (id: string, value: string) => void;
   onEditNote: (id: string) => void;
   onNoteChange: (id: string, val: string) => void;
   onSaveNote: (id: string) => void;
@@ -440,13 +503,33 @@ function ProspectRow({
 }) {
   const isEditingThis = editingNote === prospect.id;
 
+  // Format datetime-local value from stored ISO string
+  const callbackLocalValue = prospect.callback_at
+    ? new Date(new Date(prospect.callback_at).getTime() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16)
+    : "";
+
   return (
     <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] p-4 sm:p-5 hover:border-[#2a2a2a] transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
 
         {/* ── Infos prospect ─── */}
         <div className="flex-1 space-y-2 min-w-0">
-          <h3 className="font-semibold text-white leading-tight">{prospect.name}</h3>
+          {/* Nom + tags ville/métier */}
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold text-white leading-tight">{prospect.name}</h3>
+            {prospect.query_city && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
+                📍 {prospect.query_city}
+              </span>
+            )}
+            {prospect.query_job && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+                💼 {prospect.query_job}
+              </span>
+            )}
+          </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-[#aaaaaa]">
             {/* Téléphone */}
@@ -539,38 +622,67 @@ function ProspectRow({
         </div>
 
         {/* ── Actions droite ─── */}
-        <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0">
-          {/* Bouton Appeler */}
+        <div className="flex flex-col gap-2 shrink-0 w-full sm:w-[180px]">
+
+          {/* Bouton Appeler — long, vert, horizontal */}
           <a
             href={`tel:${prospect.phone}`}
-            className="flex items-center gap-1.5 bg-[#E5000A] hover:bg-[#CC0000] text-white text-xs font-bold px-3 py-2 rounded-[9px] transition-colors min-h-[44px] min-w-[44px] justify-center shadow-[0_2px_8px_rgba(229,0,10,0.2)]"
-            title={`Appeler ${prospect.name}`}
+            className="flex items-center justify-center gap-2 w-full bg-[#16a34a] hover:bg-[#15803d] active:bg-[#166534] text-white font-bold px-4 py-3 rounded-[10px] transition-colors min-h-[48px] shadow-[0_2px_12px_rgba(22,163,74,0.3)] text-sm tracking-wide"
           >
             <PhoneCall className="w-4 h-4" />
-            <span className="hidden sm:block">Appeler</span>
+            Appeler
           </a>
 
-          {/* Statut */}
-          <div className="relative">
-            <select
-              value={prospect.status}
-              onChange={(e) => onStatusChange(prospect.id, e.target.value as Status)}
-              className={`appearance-none pl-3 pr-8 py-2 rounded-[9px] border text-xs font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#E5000A] min-h-[44px] ${STATUS_COLORS[prospect.status]}`}
-            >
-              {STATUSES.map((s) => (
-                <option key={s} value={s} className="bg-[#0d0d0d] text-white font-normal">{s}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" />
+          {/* Boutons statut (emoji pills) */}
+          <div className="grid grid-cols-3 gap-1">
+            {STATUS_ACTIONS.map(({ status, emoji, short }) => (
+              <button
+                key={status}
+                onClick={() => onStatusChange(prospect.id, status)}
+                title={status}
+                className={`flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-[8px] border text-[10px] font-medium transition-all min-h-[44px] ${
+                  prospect.status === status
+                    ? STATUS_COLORS[status]
+                    : "bg-[#111111] border-[#1a1a1a] text-[#666666] hover:border-[#2a2a2a] hover:text-[#aaaaaa]"
+                }`}
+              >
+                <span className="text-base leading-none">{emoji}</span>
+                <span className="leading-tight text-center">{short}</span>
+              </button>
+            ))}
           </div>
+
+          {/* Mini calendrier si "À rappeler" */}
+          {prospect.status === "À rappeler" && (
+            <div className="mt-1 space-y-1.5">
+              <label className="flex items-center gap-1.5 text-xs text-[#E5000A] font-medium">
+                <Calendar className="w-3 h-3" />
+                Date de rappel
+              </label>
+              <input
+                type="datetime-local"
+                defaultValue={callbackLocalValue}
+                onBlur={(e) => onCallbackChange(prospect.id, e.target.value)}
+                className="w-full bg-[#0a0a0a] border border-[#3a0002] rounded-[8px] text-white text-xs px-3 py-2 focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A]/30 min-h-[40px] [color-scheme:dark]"
+              />
+              {prospect.callback_at && (
+                <p className="text-[10px] text-[#aaaaaa] flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-[#E5000A]" />
+                  {new Date(prospect.callback_at).toLocaleString("fr-FR", {
+                    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+                  })}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Supprimer */}
           <button
             onClick={() => onDelete(prospect.id)}
-            className="p-2.5 rounded-[9px] text-[#333333] hover:text-red-400 hover:bg-red-500/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-[8px] border border-[#1a1a1a] text-[#444444] hover:text-red-400 hover:border-red-500/25 hover:bg-red-500/5 transition-colors text-xs min-h-[36px]"
             title="Supprimer ce prospect"
           >
-            <Trash2 className="w-4 h-4" />
+            🗑️ Supprimer
           </button>
         </div>
       </div>
