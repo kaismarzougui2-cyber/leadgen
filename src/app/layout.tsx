@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 export const metadata: Metadata = {
   title: "LeadGen – Trouvez vos prospects B2B",
@@ -39,7 +40,9 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className="bg-black text-white antialiased">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <PageTransition>{children}</PageTransition>
+        </ToastProvider>
       </body>
     </html>
   );
