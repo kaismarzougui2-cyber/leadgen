@@ -24,6 +24,7 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { LeadCardSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { loadCommunes, getNearbyCities, type NearbyCity } from "@/lib/communes";
 
 interface SearchResult {
   id: string;
@@ -72,6 +73,8 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   const [truncated, setTruncated] = useState(false);
   const [hiddenCount, setHiddenCount] = useState(0);
 
+  const [nearbyCities, setNearbyCities] = useState<NearbyCity[]>([]);
+
   // ROI simulator
   const [roiLeads, setRoiLeads] = useState(50);
   const [roiConversion, setRoiConversion] = useState(5);
@@ -110,13 +113,15 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
     return suggestions.slice(0, 3);
   }
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!job.trim() || !city.trim()) return;
+  /** Logique de recherche partagée — accepte des valeurs explicites pour éviter
+   *  les problèmes de closure sur le state React (ex: clic sur une ville proche). */
+  async function doSearch(jobVal: string, cityVal: string) {
+    if (!jobVal.trim() || !cityVal.trim()) return;
 
     setLoading(true);
     setError(null);
     setResults([]);
+    setNearbyCities([]);
     setSaveStatus({ loading: false, savedCount: 0, error: null });
     setTruncated(false);
     setHiddenCount(0);
@@ -129,7 +134,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         fetch("/api/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ job: job.trim(), city: city.trim() }),
+          body: JSON.stringify({ job: jobVal.trim(), city: cityVal.trim() }),
         }),
         authUser
           ? supabase
@@ -170,11 +175,23 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
       setTruncated(!!data.truncated);
       setSearched(true);
       setSearchesUsed((prev) => Math.min(prev + 1, searchesLimit));
+
+      // Suggestions de villes proches — zéro appel API supplémentaire
+      if (allResults.length > 0) {
+        loadCommunes().then((communes) => {
+          setNearbyCities(getNearbyCities(communes, cityVal.trim()));
+        });
+      }
     } catch {
       setError("Erreur réseau. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    await doSearch(job, city);
   }
 
   async function handleSaveAll() {
@@ -562,6 +579,32 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                       ))}
                     </div>
 
+                    {/* ── Villes proches (Haversine sur communes.json) ── */}
+                    {nearbyCities.length > 0 && (
+                      <div className="p-5 rounded-[12px] border border-[#1a1a1a] bg-[#0a0a0a] space-y-3 animate-fade-in">
+                        <div className="flex items-center gap-2 text-[#aaaaaa] text-sm font-semibold">
+                          <MapPin className="w-4 h-4 text-[#E5000A]" />
+                          Explorer les villes proches
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {nearbyCities.map((c) => (
+                            <button
+                              key={c.nom}
+                              onClick={() => {
+                                setCity(c.nom);
+                                doSearch(job, c.nom);
+                              }}
+                              className="inline-flex items-center gap-1.5 bg-[#0d0d0d] hover:bg-[#1a1a1a] border border-[#1a1a1a] hover:border-[#2a2a2a] text-white text-sm px-3 py-2 rounded-full transition-all min-h-[36px]"
+                            >
+                              <MapPin className="w-3 h-3 text-[#555555]" />
+                              {c.nom}
+                              <span className="text-[#444444] text-xs">{Math.round(c.distance)} km</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Suggestions si tout est déjà dans le CRM */}
                     {allSaved && getSuggestions().length > 0 && (
                       <div className="p-5 rounded-[12px] border border-amber-500/20 bg-amber-500/5 space-y-3 animate-fade-in">
@@ -573,7 +616,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                           {getSuggestions().map((s) => (
                             <button
                               key={s.label}
-                              onClick={() => { setJob(s.job); setCity(s.city); }}
+                              onClick={() => { setJob(s.job); setCity(s.city); doSearch(s.job, s.city); }}
                               className="inline-flex items-center gap-1.5 bg-[#0d0d0d] hover:bg-[#1a1a1a] border border-[#1a1a1a] text-white text-sm px-3 py-2 rounded-[9px] transition-colors min-h-[40px]"
                             >
                               <Search className="w-3.5 h-3.5 text-[#aaaaaa]" />

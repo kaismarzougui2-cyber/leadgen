@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "download-communes": "node scripts/download-communes.js"
   },
   "dependencies": {
     "@eslint/eslintrc": "^3.3.5",
