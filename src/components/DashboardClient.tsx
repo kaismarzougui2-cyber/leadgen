@@ -258,6 +258,13 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
               Recherche
             </Link>
             <Link
+              href="/booster"
+              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              Mode Booster
+            </Link>
+            <Link
               href="/crm"
               className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5"
             >
@@ -311,6 +318,13 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         >
           <Search className="w-5 h-5" />
           <span className="text-xs font-semibold">Recherche</span>
+        </Link>
+        <Link
+          href="/booster"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#666666] active:bg-[#111111]"
+        >
+          <Zap className="w-5 h-5" />
+          <span className="text-xs font-medium">Booster</span>
         </Link>
         <Link
           href="/crm"

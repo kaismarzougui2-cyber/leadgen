@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Télécharge le fichier des communes françaises depuis geo.api.gouv.fr
- * et le place dans public/communes.json pour le système de suggestions de villes.
+ * et le place dans public/communes.json pour le système de suggestions de villes
+ * et le Mode Booster.
  *
  * Usage : node scripts/download-communes.js
  */
@@ -11,7 +12,7 @@ const fs = require("fs");
 const path = require("path");
 
 const URL =
-  "https://geo.api.gouv.fr/communes?fields=nom,centre,codesPostaux&format=json&geometry=centre";
+  "https://geo.api.gouv.fr/communes?fields=nom,code,centre,codesPostaux,population,departement,region&format=json&geometry=centre";
 const OUTPUT = path.join(__dirname, "../public/communes.json");
 
 console.log("⬇️  Téléchargement des communes françaises...");
@@ -47,6 +48,11 @@ https
         try {
           const data = JSON.parse(fs.readFileSync(OUTPUT, "utf8"));
           console.log(`   ${data.length} communes chargées.`);
+          if (data[0]?.departement) {
+            console.log("   ✓ Champs population/département/région inclus (Mode Booster prêt).");
+          } else {
+            console.warn("   ⚠️  Champs département/région absents — vérifiez l'URL.");
+          }
         } catch {
           console.error("⚠️  Fichier téléchargé mais JSON invalide.");
         }
