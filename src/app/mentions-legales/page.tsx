@@ -18,10 +18,12 @@ export default function MentionsLegalesPage() {
         <section className="mb-8">
           <h2 className="text-xl font-semibold text-white mb-3">Éditeur du site</h2>
           <p className="text-[#aaaaaa] leading-relaxed">
-            LeadVibe – [Nom de votre société ou nom du porteur de projet]<br />
-            Forme juridique : [ex. SAS, auto-entrepreneur…]<br />
-            SIRET : [À compléter]<br />
-            Siège social : [Adresse complète]<br />
+            Alverra – Entrepreneur individuel<br />
+            SIREN : 895 118 636<br />
+            SIRET : 895 118 636 00037<br />
+            Code APE : 7311Z – Activités des agences de publicité<br />
+            Siège social : 6 bis Boulevard Berthelot, Bureau 3, 34000 Montpellier, France<br />
+            Date d&apos;immatriculation RNE : 17/03/2026<br />
             Email : contact@leadvibe.fr
           </p>
         </section>
@@ -29,7 +31,7 @@ export default function MentionsLegalesPage() {
         <section className="mb-8">
           <h2 className="text-xl font-semibold text-white mb-3">Directeur de publication</h2>
           <p className="text-[#aaaaaa] leading-relaxed">
-            [Prénom Nom] – [Qualité]
+            Le gérant d&apos;Alverra
           </p>
         </section>
 
