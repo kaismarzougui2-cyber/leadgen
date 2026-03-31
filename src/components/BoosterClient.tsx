@@ -118,7 +118,8 @@ const PLAN_LABELS: Record<string, string> = {
 // ── Composant ────────────────────────────────────────────────────────────────
 
 export default function BoosterClient({
-  user,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  user: _user,
   plan,
   searchesUsed: initialUsed,
   searchesLimit,
@@ -206,8 +207,8 @@ export default function BoosterClient({
       // Déduplications vs CRM existant
       const supabase = createClient();
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      let savedIds = new Set<string>();
-      let savedPhones = new Set<string>();
+      const savedIds = new Set<string>();
+      const savedPhones = new Set<string>();
 
       if (authUser) {
         const { data: existing } = await supabase
