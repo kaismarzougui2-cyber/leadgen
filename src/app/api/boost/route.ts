@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { PLAN_LIMITS, type PlanId } from '@/lib/plans'
-import { loadCommunesServer, getCitiesForBoost, type ZoneType } from '@/lib/communes-server'
+import { loadCommunesServer, getCitiesForBoost, getCitiesForFrance, type ZoneType } from '@/lib/communes-server'
 
 // Plans autorisés à utiliser le Mode Booster
 const BOOST_ALLOWED_PLANS = new Set(['starter', 'pro', 'growth'])
@@ -111,7 +111,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     const trade = typeof body.trade === 'string' ? body.trade.trim().slice(0, 100) : ''
-    const zoneType: ZoneType = body.zone_type ?? 'city'
+    const rawZoneType: string = body.zone_type ?? 'city'
+    const isFrance = rawZoneType === 'france'
+    const zoneType: ZoneType = isFrance ? 'city' : (rawZoneType as ZoneType)
     const zoneValue = typeof body.zone_value === 'string' ? body.zone_value.trim().slice(0, 100) : ''
     const multiplier = Number(body.multiplier)
     const resetHistory = body.reset_history === true
@@ -119,7 +121,7 @@ export async function POST(request: NextRequest) {
     if (!trade || trade.length < 2) {
       return NextResponse.json({ error: 'Métier requis.' }, { status: 400 })
     }
-    if (!zoneValue || zoneValue.length < 2) {
+    if (!isFrance && (!zoneValue || zoneValue.length < 2)) {
       return NextResponse.json({ error: 'Zone géographique requise.' }, { status: 400 })
     }
     if (![3, 5, 10, 20].includes(multiplier)) {
@@ -182,10 +184,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const poolCities = getCitiesForBoost(communes, zoneType, zoneValue)
+    const poolCities = isFrance
+      ? getCitiesForFrance(communes)
+      : getCitiesForBoost(communes, zoneType, zoneValue)
+
     if (!poolCities.length) {
       return NextResponse.json(
-        { error: `Aucune ville trouvée pour la zone "${zoneValue}".` },
+        { error: isFrance ? 'Données géographiques indisponibles.' : `Aucune ville trouvée pour la zone "${zoneValue}".` },
         { status: 404 }
       )
     }
@@ -322,6 +327,7 @@ export async function POST(request: NextRequest) {
       exhausted,
       cities_already_covered: citiesAlreadyCovered,
       new_cities_found: availableCities.length,
+      total_pool: poolCities.length,
       demo: !apiKey,
       ...(exhausted && availableCities.length > 0
         ? {

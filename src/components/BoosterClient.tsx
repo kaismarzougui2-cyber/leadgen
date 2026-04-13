@@ -17,6 +17,8 @@ import {
   Users,
   Settings,
   BookmarkPlus,
+  Bot,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -126,12 +128,14 @@ export default function BoosterClient({
 }: Props) {
   const isPaid = plan !== "free";
 
+  const [boostMode, setBoostMode] = useState<"manual" | "auto">("manual");
   const [trade, setTrade] = useState("");
   const [zoneType, setZoneType] = useState<"city" | "department" | "region">("city");
   const [cityZone, setCityZone] = useState("");
   const [deptZone, setDeptZone] = useState("");
   const [regionZone, setRegionZone] = useState("");
   const [multiplier, setMultiplier] = useState(5);
+  const [franceCoverage, setFranceCoverage] = useState<{ covered: number; total: number } | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +159,9 @@ export default function BoosterClient({
   const zoneValue =
     zoneType === "city" ? cityZone : zoneType === "department" ? deptZone : regionZone;
 
-  const isValid = trade.trim().length >= 2 && zoneValue.trim().length >= 2;
+  const isValid =
+    trade.trim().length >= 2 &&
+    (boostMode === "auto" || zoneValue.trim().length >= 2);
 
   // ── Autocomplete villes ──────────────────────────────────────────────────
   const handleCityZoneChange = useCallback(async (val: string) => {
@@ -190,8 +196,8 @@ export default function BoosterClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           trade: trade.trim(),
-          zone_type: zoneType,
-          zone_value: zoneValue.trim(),
+          zone_type: boostMode === "auto" ? "france" : zoneType,
+          zone_value: boostMode === "auto" ? "" : zoneValue.trim(),
           multiplier,
           reset_history: resetHistory,
         }),
@@ -234,6 +240,10 @@ export default function BoosterClient({
       setSearchesUsed((prev) => Math.min(prev + (data.credits_used ?? multiplier), searchesLimit));
       setExhausted(!!data.exhausted);
       setExhaustedMessage(data.message ?? null);
+      if (boostMode === "auto" && data.total_pool) {
+        const covered = (data.cities_already_covered ?? 0) + (data.credits_used ?? multiplier);
+        setFranceCoverage({ covered, total: data.total_pool });
+      }
       setDone(true);
     } catch {
       setError("Erreur réseau. Veuillez réessayer.");
@@ -422,6 +432,48 @@ export default function BoosterClient({
         {isPaid && (
           <section className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-[14px] p-6 space-y-6">
 
+            {/* ── Sélecteur de mode ─── */}
+            <div className="flex gap-1 bg-black border border-[#1a1a1a] rounded-[12px] p-1">
+              <button
+                type="button"
+                onClick={() => { setBoostMode("manual"); setDone(false); setResults([]); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-[10px] text-sm font-semibold transition-all ${
+                  boostMode === "manual"
+                    ? "bg-[#1a1a1a] text-white"
+                    : "text-[#666666] hover:text-[#aaaaaa]"
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                Mode Boost
+              </button>
+              <button
+                type="button"
+                onClick={() => { setBoostMode("auto"); setDone(false); setResults([]); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-[10px] text-sm font-semibold transition-all ${
+                  boostMode === "auto"
+                    ? "bg-[#160002] text-[#E5000A] border border-[#3a0002]"
+                    : "text-[#666666] hover:text-[#aaaaaa]"
+                }`}
+              >
+                <Bot className="w-4 h-4" />
+                Mode Auto
+              </button>
+            </div>
+
+            {/* Description du mode */}
+            {boostMode === "auto" && (
+              <div className="flex items-start gap-3 p-3.5 bg-[#160002]/50 border border-[#3a0002] rounded-[10px]">
+                <Bot className="w-4 h-4 text-[#E5000A] shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-white font-medium">Prospection automatique — France entière</p>
+                  <p className="text-xs text-[#aaaaaa] mt-0.5">
+                    Entrez juste un métier. LeadGen choisit automatiquement les prochaines villes à prospecter
+                    (top 1 000 par population) et enregistre les villes déjà couvertes pour éviter les doublons.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Métier */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-white">Métier à prospecter</label>
@@ -471,8 +523,32 @@ export default function BoosterClient({
               </p>
             </div>
 
-            {/* Zone géographique */}
-            <div className="space-y-3">
+            {/* Couverture France (Mode Auto) */}
+            {boostMode === "auto" && franceCoverage && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5 text-[#aaaaaa] font-medium">
+                    <TrendingUp className="w-3.5 h-3.5 text-[#E5000A]" />
+                    Couverture France — {trade || "ce métier"}
+                  </span>
+                  <span className="text-white font-semibold">
+                    {franceCoverage.covered} / {franceCoverage.total} villes
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-[#111111] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#E5000A] rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((franceCoverage.covered / franceCoverage.total) * 100, 100)}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-[#555555]">
+                  {franceCoverage.total - franceCoverage.covered} ville{franceCoverage.total - franceCoverage.covered !== 1 ? "s" : ""} restante{franceCoverage.total - franceCoverage.covered !== 1 ? "s" : ""} à prospecter
+                </p>
+              </div>
+            )}
+
+            {/* Zone géographique (Mode Manuel uniquement) */}
+            {boostMode === "manual" && <div className="space-y-3">
               <label className="text-sm font-semibold text-white">Zone géographique</label>
 
               {/* Tabs zone */}
@@ -550,7 +626,7 @@ export default function BoosterClient({
                   ))}
                 </select>
               )}
-            </div>
+            </div>}
 
             {/* Bouton lancement */}
             <button
@@ -563,6 +639,11 @@ export default function BoosterClient({
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Recherche sur {multiplier} ville{multiplier > 1 ? "s" : ""}...
+                </>
+              ) : boostMode === "auto" ? (
+                <>
+                  <Bot className="w-4 h-4" />
+                  Scanner {multiplier} prochaines villes ({multiplier} crédit{multiplier > 1 ? "s" : ""})
                 </>
               ) : (
                 <>

@@ -18,6 +18,10 @@ import {
   Calendar,
   X,
   Briefcase,
+  FolderOpen,
+  FolderPlus,
+  Folder,
+  Plus,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -27,10 +31,11 @@ import { EmptyState } from "@/components/ui/EmptyState";
 const STATUSES = [
   "À appeler",
   "A répondu",
+  "N'a pas répondu",
   "Réfléchit",
-  "Pas intéressé",
   "Intéressé",
   "À rappeler",
+  "Pas intéressé",
 ] as const;
 
 type Status = (typeof STATUSES)[number];
@@ -51,42 +56,63 @@ interface Prospect {
   query_city?: string | null;
   query_job?: string | null;
   callback_at?: string | null;
+  folder_id?: string | null;
 }
 
 const STATUS_COLORS: Record<Status, string> = {
-  "À appeler":      "bg-blue-500/15 text-blue-400 border-blue-500/25",
-  "A répondu":      "bg-cyan-500/15 text-cyan-400 border-cyan-500/25",
-  "Réfléchit":      "bg-amber-500/15 text-amber-400 border-amber-500/25",
-  "Pas intéressé":  "bg-red-500/15  text-red-400  border-red-500/25",
-  "Intéressé":      "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
-  "À rappeler":     "bg-[#160002] text-[#E5000A] border-[#3a0002]",
+  "À appeler":          "bg-blue-500/15 text-blue-400 border-blue-500/25",
+  "A répondu":          "bg-cyan-500/15 text-cyan-400 border-cyan-500/25",
+  "N'a pas répondu":    "bg-zinc-500/15 text-zinc-400 border-zinc-500/25",
+  "Réfléchit":          "bg-amber-500/15 text-amber-400 border-amber-500/25",
+  "Pas intéressé":      "bg-red-500/15 text-red-400 border-red-500/25",
+  "Intéressé":          "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
+  "À rappeler":         "bg-[#160002] text-[#E5000A] border-[#3a0002]",
 };
 
 /** Emoji + libellé court pour chaque statut */
 const STATUS_ACTIONS: { status: Status; emoji: string; short: string }[] = [
-  { status: "À appeler",     emoji: "📞", short: "Appeler"  },
-  { status: "A répondu",     emoji: "✅", short: "Répondu"  },
-  { status: "Réfléchit",     emoji: "💭", short: "Réfléchit"},
-  { status: "À rappeler",    emoji: "🔔", short: "Rappeler" },
-  { status: "Intéressé",     emoji: "⭐", short: "Intéressé"},
-  { status: "Pas intéressé", emoji: "❌", short: "Non"      },
+  { status: "À appeler",       emoji: "📞", short: "Appeler"  },
+  { status: "A répondu",       emoji: "✅", short: "Répondu"  },
+  { status: "N'a pas répondu", emoji: "📵", short: "Absent"   },
+  { status: "Réfléchit",       emoji: "💭", short: "Réfléchit"},
+  { status: "À rappeler",      emoji: "🔔", short: "Rappeler" },
+  { status: "Intéressé",       emoji: "⭐", short: "Intéressé"},
+  { status: "Pas intéressé",   emoji: "❌", short: "Non"      },
 ];
+
+const FOLDER_COLORS = [
+  "#E5000A", "#3B82F6", "#22C55E", "#F59E0B", "#A855F7", "#06B6D4", "#F97316",
+];
+
+interface ProspectFolder {
+  id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
 
 export default function CrmClient({
   initialProspects,
+  initialFolders = [],
   userEmail,
 }: {
   initialProspects: Prospect[];
+  initialFolders?: ProspectFolder[];
   userEmail: string;
 }) {
   const [prospects, setProspects] = useState<Prospect[]>(initialProspects);
+  const [folders, setFolders] = useState<ProspectFolder[]>(initialFolders);
   const [filterStatus, setFilterStatus] = useState<Status | "Tous">("Tous");
   const [filterNoWebsite, setFilterNoWebsite] = useState(false);
   const [filterCity, setFilterCity] = useState("");
   const [filterJob, setFilterJob] = useState("");
+  const [filterFolder, setFilterFolder] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [noteValues, setNoteValues] = useState<Record<string, string>>({});
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderColor, setNewFolderColor] = useState(FOLDER_COLORS[0]);
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -178,6 +204,43 @@ export default function CrmClient({
     }
   }
 
+  async function createFolder() {
+    const name = newFolderName.trim();
+    if (!name) return;
+    const { data: { user: u } } = await supabase.auth.getUser();
+    if (!u) return;
+    const { data, error } = await supabase
+      .from("prospect_folders")
+      .insert({ user_id: u.id, name, color: newFolderColor })
+      .select()
+      .single();
+    if (error) { toast("Erreur lors de la création du dossier", "error"); return; }
+    setFolders((prev) => [...prev, data as ProspectFolder]);
+    setNewFolderName("");
+    setNewFolderColor(FOLDER_COLORS[0]);
+    setShowCreateFolder(false);
+    toast(`Dossier "${name}" créé`, "success");
+  }
+
+  async function deleteFolder(id: string) {
+    const folder = folders.find((f) => f.id === id);
+    setFolders((prev) => prev.filter((f) => f.id !== id));
+    setProspects((prev) => prev.map((p) => p.folder_id === id ? { ...p, folder_id: null } : p));
+    if (filterFolder === id) setFilterFolder(null);
+    const { error } = await supabase.from("prospect_folders").delete().eq("id", id);
+    if (error) toast("Erreur lors de la suppression du dossier", "error");
+    else toast(`Dossier "${folder?.name ?? ""}" supprimé`, "info");
+  }
+
+  async function moveToFolder(prospectId: string, folderId: string | null) {
+    setProspects((prev) => prev.map((p) => p.id === prospectId ? { ...p, folder_id: folderId } : p));
+    const { error } = await supabase
+      .from("prospects")
+      .update({ folder_id: folderId })
+      .eq("id", prospectId);
+    if (error) toast("Erreur lors du déplacement", "error");
+  }
+
   const uniqueCities = Array.from(new Set(prospects.map((p) => p.query_city).filter(Boolean))) as string[];
   const uniqueJobs  = Array.from(new Set(prospects.map((p) => p.query_job).filter(Boolean))) as string[];
 
@@ -194,11 +257,13 @@ export default function CrmClient({
     const matchNoWebsite = !filterNoWebsite || !p.website;
     const matchCity = !filterCity || p.query_city === filterCity;
     const matchJob  = !filterJob  || p.query_job  === filterJob;
-    return matchStatus && matchSearch && matchNoWebsite && matchCity && matchJob;
+    const matchFolder = !filterFolder || p.folder_id === filterFolder;
+    return matchStatus && matchSearch && matchNoWebsite && matchCity && matchJob && matchFolder;
   });
 
   const countByStatus = (s: Status) => prospects.filter((p) => p.status === s).length;
-  const hasActiveFilters = filterStatus !== "Tous" || filterNoWebsite || filterCity || filterJob || search;
+  const countByFolder = (id: string) => prospects.filter((p) => p.folder_id === id).length;
+  const hasActiveFilters = filterStatus !== "Tous" || filterNoWebsite || filterCity || filterJob || filterFolder || search;
 
   return (
     <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0">
@@ -302,8 +367,98 @@ export default function CrmClient({
           </div>
         </div>
 
+        {/* ── Dossiers ────────────────────────────────────── */}
+        <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.04s" }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Tous */}
+            <button
+              onClick={() => setFilterFolder(null)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[9px] border text-xs font-medium transition-all min-h-[36px] ${
+                !filterFolder
+                  ? "bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                  : "bg-[#0d0d0d] border-[#1a1a1a] text-[#666666] hover:text-[#aaaaaa] hover:border-[#2a2a2a]"
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              Tous ({prospects.length})
+            </button>
+
+            {/* Dossiers existants */}
+            {folders.map((f) => (
+              <div key={f.id} className="relative group flex items-center">
+                <button
+                  onClick={() => setFilterFolder(filterFolder === f.id ? null : f.id)}
+                  className={`flex items-center gap-1.5 pl-3 pr-7 py-1.5 rounded-[9px] border text-xs font-medium transition-all min-h-[36px] ${
+                    filterFolder === f.id
+                      ? "bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                      : "bg-[#0d0d0d] border-[#1a1a1a] text-[#666666] hover:text-[#aaaaaa] hover:border-[#2a2a2a]"
+                  }`}
+                >
+                  <Folder className="w-3.5 h-3.5" style={{ color: f.color }} />
+                  {f.name} ({countByFolder(f.id)})
+                </button>
+                <button
+                  onClick={() => deleteFolder(f.id)}
+                  title="Supprimer ce dossier"
+                  className="absolute right-1.5 opacity-0 group-hover:opacity-100 text-[#444444] hover:text-red-400 transition-all p-0.5 rounded"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+
+            {/* Créer dossier */}
+            <button
+              onClick={() => setShowCreateFolder((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[9px] border border-dashed border-[#2a2a2a] text-[#555555] hover:text-[#aaaaaa] hover:border-[#3a3a3a] text-xs font-medium transition-all min-h-[36px]"
+            >
+              <FolderPlus className="w-3.5 h-3.5" />
+              Nouveau dossier
+            </button>
+          </div>
+
+          {/* Formulaire création dossier */}
+          {showCreateFolder && (
+            <div className="flex items-center gap-2 flex-wrap p-3 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[10px]">
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && createFolder()}
+                placeholder="Nom du dossier..."
+                autoFocus
+                className="flex-1 min-w-[140px] bg-black border border-[#1a1a1a] rounded-[8px] text-white text-sm px-3 py-2 placeholder-[#444444] focus:outline-none focus:border-[#E5000A] focus:ring-1 focus:ring-[#E5000A]"
+              />
+              <div className="flex items-center gap-1">
+                {FOLDER_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setNewFolderColor(c)}
+                    className={`w-5 h-5 rounded-full transition-transform ${newFolderColor === c ? "scale-125 ring-2 ring-white/30" : "hover:scale-110"}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={createFolder}
+                disabled={!newFolderName.trim()}
+                className="flex items-center gap-1.5 bg-[#E5000A] hover:bg-[#CC0000] disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-[8px] transition-colors min-h-[36px]"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Créer
+              </button>
+              <button
+                onClick={() => { setShowCreateFolder(false); setNewFolderName(""); }}
+                className="text-[#666666] hover:text-white text-xs px-2 py-2 min-h-[36px]"
+              >
+                Annuler
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* ── Compteurs par statut ────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 animate-fade-in" style={{ animationDelay: "0.05s" }}>
           {STATUSES.map((s) => (
             <button
               key={s}
@@ -401,6 +556,7 @@ export default function CrmClient({
                   setFilterNoWebsite(false);
                   setFilterCity("");
                   setFilterJob("");
+                  setFilterFolder(null);
                   setSearch("");
                 }}
                 className="flex items-center gap-1 px-3 py-1 rounded-full border border-[#1a1a1a] text-xs text-[#666666] hover:text-white hover:border-[#2a2a2a] transition-colors"
@@ -440,6 +596,7 @@ export default function CrmClient({
                   setFilterNoWebsite(false);
                   setFilterCity("");
                   setFilterJob("");
+                  setFilterFolder(null);
                   setSearch("");
                 },
               }}
@@ -455,10 +612,12 @@ export default function CrmClient({
               >
                 <ProspectRow
                   prospect={prospect}
+                  folders={folders}
                   editingNote={editingNote}
                   noteValue={noteValues[prospect.id] ?? prospect.note}
                   onStatusChange={updateStatus}
                   onCallbackChange={saveCallbackAt}
+                  onMoveFolder={moveToFolder}
                   onEditNote={(id) => {
                     setEditingNote(id);
                     setNoteValues((prev) => ({ ...prev, [id]: prospect.note }));
@@ -480,10 +639,12 @@ export default function CrmClient({
 /* ─── ProspectRow ────────────────────────────────────────────── */
 function ProspectRow({
   prospect,
+  folders,
   editingNote,
   noteValue,
   onStatusChange,
   onCallbackChange,
+  onMoveFolder,
   onEditNote,
   onNoteChange,
   onSaveNote,
@@ -491,10 +652,12 @@ function ProspectRow({
   onDelete,
 }: {
   prospect: Prospect;
+  folders: ProspectFolder[];
   editingNote: string | null;
   noteValue: string;
   onStatusChange: (id: string, status: Status) => void;
   onCallbackChange: (id: string, value: string) => void;
+  onMoveFolder: (id: string, folderId: string | null) => void;
   onEditNote: (id: string) => void;
   onNoteChange: (id: string, val: string) => void;
   onSaveNote: (id: string) => void;
@@ -516,7 +679,7 @@ function ProspectRow({
 
         {/* ── Infos prospect ─── */}
         <div className="flex-1 space-y-2 min-w-0">
-          {/* Nom + tags ville/métier */}
+          {/* Nom + tags ville/métier + dossier */}
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold text-white leading-tight">{prospect.name}</h3>
             {prospect.query_city && (
@@ -529,6 +692,18 @@ function ProspectRow({
                 💼 {prospect.query_job}
               </span>
             )}
+            {prospect.folder_id && folders.find((f) => f.id === prospect.folder_id) && (() => {
+              const f = folders.find((f) => f.id === prospect.folder_id)!;
+              return (
+                <span
+                  className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium"
+                  style={{ color: f.color, borderColor: f.color + "40", backgroundColor: f.color + "15" }}
+                >
+                  <FolderOpen className="w-2.5 h-2.5" />
+                  {f.name}
+                </span>
+              );
+            })()}
           </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-[#aaaaaa]">
@@ -674,6 +849,20 @@ function ProspectRow({
                 </p>
               )}
             </div>
+          )}
+
+          {/* Dossier */}
+          {folders.length > 0 && (
+            <select
+              value={prospect.folder_id ?? ""}
+              onChange={(e) => onMoveFolder(prospect.id, e.target.value || null)}
+              className="w-full bg-[#0d0d0d] border border-[#1a1a1a] rounded-[8px] text-[#aaaaaa] text-xs px-2.5 py-2 focus:outline-none focus:border-[#E5000A] min-h-[36px] appearance-none"
+            >
+              <option value="">📁 Sans dossier</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>📁 {f.name}</option>
+              ))}
+            </select>
           )}
 
           {/* Supprimer */}

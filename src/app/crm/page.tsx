@@ -10,11 +10,25 @@ export default async function CrmPage() {
 
   if (!user) redirect("/");
 
+  // Use range(0, 9999) to bypass the default 1000-row PostgREST cap
   const { data: prospects } = await supabase
     .from("prospects")
     .select("*")
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(0, 9999);
 
-  return <CrmClient initialProspects={prospects ?? []} userEmail={user.email ?? ""} />;
+  const { data: folders } = await supabase
+    .from("prospect_folders")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true });
+
+  return (
+    <CrmClient
+      initialProspects={prospects ?? []}
+      initialFolders={folders ?? []}
+      userEmail={user.email ?? ""}
+    />
+  );
 }

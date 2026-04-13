@@ -93,3 +93,14 @@ export function getCitiesForBoost(
 
   return []
 }
+
+/**
+ * Retourne les top 1 000 villes de France par population (>= 1 000 habitants),
+ * utilisé par le Mode Auto pour prospecter toute la France systématiquement.
+ */
+export function getCitiesForFrance(communes: CommuneEnriched[]): CommuneEnriched[] {
+  return communes
+    .filter((c) => c.centre && (c.population ?? 0) >= 1000)
+    .sort((a, b) => (b.population ?? 0) - (a.population ?? 0))
+    .slice(0, 1000)
+}
