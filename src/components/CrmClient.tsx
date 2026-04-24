@@ -22,11 +22,17 @@ import {
   FolderPlus,
   Folder,
   Plus,
+  Upload,
+  BarChart2,
+  LayoutList,
+  LayoutGrid,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useToast } from "@/components/ui/Toast";
 import { EmptyState } from "@/components/ui/EmptyState";
+import CsvImportModal from "@/components/CsvImportModal";
+import KanbanBoard from "@/components/KanbanBoard";
 
 const STATUSES = [
   "À appeler",
@@ -36,6 +42,8 @@ const STATUSES = [
   "Intéressé",
   "À rappeler",
   "Pas intéressé",
+  "Client signé",
+  "Ne pas rappeler",
 ] as const;
 
 type Status = (typeof STATUSES)[number];
@@ -57,16 +65,27 @@ interface Prospect {
   query_job?: string | null;
   callback_at?: string | null;
   folder_id?: string | null;
+  contact_name?: string | null;
+}
+
+interface CallLog {
+  id: string;
+  called_at: string;
+  outcome: string | null;
+  contact_name: string | null;
+  note: string;
 }
 
 const STATUS_COLORS: Record<Status, string> = {
-  "À appeler":          "bg-blue-500/15 text-blue-400 border-blue-500/25",
-  "A répondu":          "bg-cyan-500/15 text-cyan-400 border-cyan-500/25",
-  "N'a pas répondu":    "bg-zinc-500/15 text-zinc-400 border-zinc-500/25",
-  "Réfléchit":          "bg-amber-500/15 text-amber-400 border-amber-500/25",
-  "Pas intéressé":      "bg-red-500/15 text-red-400 border-red-500/25",
-  "Intéressé":          "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
-  "À rappeler":         "bg-[#160002] text-[#E5000A] border-[#3a0002]",
+  "À appeler":       "bg-blue-500/15 text-blue-400 border-blue-500/25",
+  "A répondu":       "bg-cyan-500/15 text-cyan-400 border-cyan-500/25",
+  "N'a pas répondu": "bg-zinc-500/15 text-zinc-400 border-zinc-500/25",
+  "Réfléchit":       "bg-amber-500/15 text-amber-400 border-amber-500/25",
+  "Pas intéressé":   "bg-red-500/15 text-red-400 border-red-500/25",
+  "Intéressé":       "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
+  "À rappeler":      "bg-[#160002] text-[#E5000A] border-[#3a0002]",
+  "Client signé":    "bg-emerald-500/25 text-emerald-300 border-emerald-500/40",
+  "Ne pas rappeler": "bg-zinc-800/50 text-zinc-500 border-zinc-700/50",
 };
 
 /** Emoji + libellé court pour chaque statut */
@@ -78,6 +97,8 @@ const STATUS_ACTIONS: { status: Status; emoji: string; short: string }[] = [
   { status: "À rappeler",      emoji: "🔔", short: "Rappeler" },
   { status: "Intéressé",       emoji: "⭐", short: "Intéressé"},
   { status: "Pas intéressé",   emoji: "❌", short: "Non"      },
+  { status: "Client signé",    emoji: "🏆", short: "Signé"    },
+  { status: "Ne pas rappeler", emoji: "🚫", short: "Stop"     },
 ];
 
 const FOLDER_COLORS = [
@@ -94,14 +115,28 @@ interface ProspectFolder {
 export default function CrmClient({
   initialProspects,
   initialFolders = [],
+  initialCallLogs = [] as (CallLog & { prospect_id: string })[],
   userEmail,
 }: {
   initialProspects: Prospect[];
   initialFolders?: ProspectFolder[];
+  initialCallLogs?: (CallLog & { prospect_id: string })[];
   userEmail: string;
 }) {
   const [prospects, setProspects] = useState<Prospect[]>(initialProspects);
   const [folders, setFolders] = useState<ProspectFolder[]>(initialFolders);
+  // keyed by prospect_id
+  const [callLogs, setCallLogs] = useState<Record<string, CallLog[]>>(() => {
+    const map: Record<string, CallLog[]> = {};
+    for (const log of initialCallLogs) {
+      const { prospect_id, ...rest } = log as CallLog & { prospect_id: string };
+      if (!map[prospect_id]) map[prospect_id] = [];
+      map[prospect_id].push(rest);
+    }
+    return map;
+  });
+  const [expandedLog, setExpandedLog] = useState<string | null>(null);
+
   const [filterStatus, setFilterStatus] = useState<Status | "Tous">("Tous");
   const [filterNoWebsite, setFilterNoWebsite] = useState(false);
   const [filterCity, setFilterCity] = useState("");
@@ -113,6 +148,8 @@ export default function CrmClient({
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderColor, setNewFolderColor] = useState(FOLDER_COLORS[0]);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
 
   const supabase = createClient();
   const { toast } = useToast();
@@ -152,15 +189,40 @@ export default function CrmClient({
 
   async function updateStatus(id: string, status: Status) {
     setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+    const now = new Date().toISOString();
     const { error } = await supabase
       .from("prospects")
-      .update({ status, updated_at: new Date().toISOString() })
+      .update({ status, updated_at: now })
       .eq("id", id);
     if (error) {
       toast("Erreur lors de la mise à jour du statut", "error");
-    } else {
-      toast(`Statut mis à jour : ${status}`, "success");
+      return;
     }
+    toast(`Statut mis à jour : ${status}`, "success");
+    // Auto-log the interaction
+    const { data: { user: u } } = await supabase.auth.getUser();
+    if (u) {
+      const { data: log } = await supabase
+        .from("call_logs")
+        .insert({ user_id: u.id, prospect_id: id, outcome: status, called_at: now })
+        .select()
+        .single();
+      if (log) {
+        setCallLogs((prev) => ({
+          ...prev,
+          [id]: [{ id: log.id, called_at: log.called_at, outcome: log.outcome, contact_name: log.contact_name, note: log.note }, ...(prev[id] ?? [])],
+        }));
+      }
+    }
+  }
+
+  async function saveContactName(id: string, contact_name: string) {
+    setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, contact_name } : p)));
+    const { error } = await supabase
+      .from("prospects")
+      .update({ contact_name, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) toast("Erreur lors de l'enregistrement du contact", "error");
   }
 
   async function saveCallbackAt(id: string, value: string) {
@@ -291,6 +353,13 @@ export default function CrmClient({
               <Users className="w-3.5 h-3.5" />
               CRM
             </Link>
+            <Link
+              href="/analytics"
+              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5"
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+              Analytics
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -347,7 +416,41 @@ export default function CrmClient({
               {prospects.length} prospect{prospects.length !== 1 ? "s" : ""} sauvegardé{prospects.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* View toggle */}
+            <div className="flex items-center bg-[#0d0d0d] border border-[#1a1a1a] rounded-[9px] p-1 gap-1">
+              <button
+                onClick={() => setViewMode("list")}
+                title="Vue liste"
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[7px] text-xs font-medium transition-colors min-h-[32px] ${
+                  viewMode === "list"
+                    ? "bg-[#1a1a1a] text-white"
+                    : "text-[#666666] hover:text-[#aaaaaa]"
+                }`}
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+                <span className="hidden sm:block">Liste</span>
+              </button>
+              <button
+                onClick={() => setViewMode("kanban")}
+                title="Vue Kanban"
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[7px] text-xs font-medium transition-colors min-h-[32px] ${
+                  viewMode === "kanban"
+                    ? "bg-[#1a1a1a] text-white"
+                    : "text-[#666666] hover:text-[#aaaaaa]"
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span className="hidden sm:block">Kanban</span>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowCsvImport(true)}
+              className="flex items-center gap-2 bg-[#0d0d0d] hover:bg-[#1a1a1a] border border-[#1a1a1a] hover:border-[#2a2a2a] text-white font-medium px-4 py-2.5 rounded-[9px] transition-colors text-sm min-h-[44px]"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:block">Importer CSV</span>
+            </button>
             {prospects.length > 0 && (
               <button
                 onClick={exportCSV}
@@ -365,6 +468,15 @@ export default function CrmClient({
               <span className="hidden sm:block">Nouvelle recherche</span>
             </Link>
           </div>
+          {showCsvImport && (
+            <CsvImportModal
+              onClose={() => setShowCsvImport(false)}
+              onImported={(count) => {
+                toast(`${count} prospect${count !== 1 ? "s" : ""} importé${count !== 1 ? "s" : ""}`, "success");
+                window.location.reload();
+              }}
+            />
+          )}
         </div>
 
         {/* ── Dossiers ────────────────────────────────────── */}
@@ -458,7 +570,7 @@ export default function CrmClient({
         </div>
 
         {/* ── Compteurs par statut ────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 animate-fade-in" style={{ animationDelay: "0.05s" }}>
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 animate-fade-in" style={{ animationDelay: "0.05s" }}>
           {STATUSES.map((s) => (
             <button
               key={s}
@@ -575,8 +687,19 @@ export default function CrmClient({
           )}
         </div>
 
-        {/* ── Liste prospects ─────────────────────────────── */}
-        {filtered.length === 0 ? (
+        {/* ── Prospects ───────────────────────────────────── */}
+        {viewMode === "kanban" ? (
+          prospects.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="Aucun prospect sauvegardé"
+              description="Lancez une recherche pour trouver des leads qualifiés et les ajouter à votre CRM."
+              action={{ label: "Faire une recherche", href: "/dashboard" }}
+            />
+          ) : (
+            <KanbanBoard prospects={filtered} onStatusChange={updateStatus} />
+          )
+        ) : filtered.length === 0 ? (
           prospects.length === 0 ? (
             <EmptyState
               icon={Users}
@@ -613,11 +736,15 @@ export default function CrmClient({
                 <ProspectRow
                   prospect={prospect}
                   folders={folders}
+                  callLogs={callLogs[prospect.id] ?? []}
+                  logExpanded={expandedLog === prospect.id}
+                  onToggleLog={() => setExpandedLog(expandedLog === prospect.id ? null : prospect.id)}
                   editingNote={editingNote}
                   noteValue={noteValues[prospect.id] ?? prospect.note}
                   onStatusChange={updateStatus}
                   onCallbackChange={saveCallbackAt}
                   onMoveFolder={moveToFolder}
+                  onSaveContactName={saveContactName}
                   onEditNote={(id) => {
                     setEditingNote(id);
                     setNoteValues((prev) => ({ ...prev, [id]: prospect.note }));
@@ -638,26 +765,22 @@ export default function CrmClient({
 
 /* ─── ProspectRow ────────────────────────────────────────────── */
 function ProspectRow({
-  prospect,
-  folders,
-  editingNote,
-  noteValue,
-  onStatusChange,
-  onCallbackChange,
-  onMoveFolder,
-  onEditNote,
-  onNoteChange,
-  onSaveNote,
-  onCancelNote,
-  onDelete,
+  prospect, folders, callLogs, logExpanded, onToggleLog,
+  editingNote, noteValue, onStatusChange, onCallbackChange,
+  onMoveFolder, onSaveContactName, onEditNote, onNoteChange,
+  onSaveNote, onCancelNote, onDelete,
 }: {
   prospect: Prospect;
   folders: ProspectFolder[];
+  callLogs: CallLog[];
+  logExpanded: boolean;
+  onToggleLog: () => void;
   editingNote: string | null;
   noteValue: string;
   onStatusChange: (id: string, status: Status) => void;
   onCallbackChange: (id: string, value: string) => void;
   onMoveFolder: (id: string, folderId: string | null) => void;
+  onSaveContactName: (id: string, name: string) => void;
   onEditNote: (id: string) => void;
   onNoteChange: (id: string, val: string) => void;
   onSaveNote: (id: string) => void;
@@ -754,6 +877,12 @@ function ProspectRow({
             )}
           </div>
 
+          {/* Contact name */}
+          <ContactNameField
+            value={prospect.contact_name ?? ""}
+            onSave={(v) => onSaveContactName(prospect.id, v)}
+          />
+
           {/* Note */}
           {isEditingThis ? (
             <div className="space-y-2 mt-2">
@@ -794,6 +923,39 @@ function ProspectRow({
               )}
             </button>
           )}
+
+          {/* Call history */}
+          <div className="mt-1">
+            <button
+              onClick={onToggleLog}
+              className="flex items-center gap-1.5 text-xs text-[#555555] hover:text-[#aaaaaa] transition-colors min-h-[28px]"
+            >
+              <Phone className="w-3 h-3" />
+              {callLogs.length > 0
+                ? `${callLogs.length} interaction${callLogs.length !== 1 ? "s" : ""} — ${logExpanded ? "masquer" : "voir"}`
+                : "Aucun appel enregistré"}
+            </button>
+            {logExpanded && callLogs.length > 0 && (
+              <div className="mt-2 space-y-1 border-l-2 border-[#1a1a1a] pl-3">
+                {callLogs.slice(0, 10).map((log) => (
+                  <div key={log.id} className="text-xs text-[#666666]">
+                    <span className="text-[#aaaaaa]">
+                      {new Date(log.called_at).toLocaleString("fr-FR", {
+                        day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+                      })}
+                    </span>
+                    {log.outcome && (
+                      <span className="ml-2 text-[#888888]">→ {log.outcome}</span>
+                    )}
+                    {log.contact_name && (
+                      <span className="ml-2 text-[#555555]">({log.contact_name})</span>
+                    )}
+                    {log.note && <p className="mt-0.5 text-[#555555] italic">{log.note}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Actions droite ─── */}
@@ -876,5 +1038,37 @@ function ProspectRow({
         </div>
       </div>
     </div>
+  );
+}
+
+/* ─── ContactNameField ───────────────────────────────────────────────────── */
+function ContactNameField({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value);
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 mt-1">
+        <input
+          type="text"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onBlur={() => { onSave(val); setEditing(false); }}
+          onKeyDown={(e) => { if (e.key === "Enter") { onSave(val); setEditing(false); } if (e.key === "Escape") setEditing(false); }}
+          placeholder="Nom du contact..."
+          autoFocus
+          className="flex-1 bg-black border border-[#1a1a1a] rounded-[7px] text-white text-xs px-2.5 py-1.5 placeholder-[#333333] focus:outline-none focus:border-[#E5000A] min-h-[30px]"
+        />
+      </div>
+    );
+  }
+  return (
+    <button
+      onClick={() => setEditing(true)}
+      className="flex items-center gap-1.5 text-xs text-[#555555] hover:text-[#aaaaaa] transition-colors mt-1 min-h-[28px] text-left"
+    >
+      <Users className="w-3 h-3 shrink-0" />
+      {value ? <span>{value}</span> : <span className="italic">Ajouter le contact...</span>}
+    </button>
   );
 }

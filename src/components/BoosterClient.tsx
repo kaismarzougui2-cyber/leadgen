@@ -19,6 +19,7 @@ import {
   BookmarkPlus,
   Bot,
   TrendingUp,
+  BarChart2,
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -273,6 +274,8 @@ export default function BoosterClient({
       google_place_id: r.id.startsWith("demo-") ? null : r.id,
       website: r.website,
       status: "À appeler",
+      query_job: trade,
+      query_city: r.city,
     }));
 
     const { error: insertError, data: inserted } = await supabase
@@ -328,6 +331,13 @@ export default function BoosterClient({
             >
               <Users className="w-3.5 h-3.5" />
               CRM
+            </Link>
+            <Link
+              href="/analytics"
+              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5"
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+              Analytics
             </Link>
           </div>
         </div>

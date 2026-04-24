@@ -19,6 +19,7 @@ import {
   Settings,
   Lightbulb,
   PhoneCall,
+  BarChart2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -219,6 +220,8 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
       siret: r.siret ?? null,
       naf_code: r.naf_code ?? null,
       naf_label: r.naf_label ?? null,
+      query_job: job,
+      query_city: city,
     }));
 
     const { error: insertError, data: inserted } = await supabase
@@ -270,6 +273,13 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
             >
               <Users className="w-3.5 h-3.5" />
               CRM
+            </Link>
+            <Link
+              href="/analytics"
+              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5"
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+              Analytics
             </Link>
           </div>
         </div>

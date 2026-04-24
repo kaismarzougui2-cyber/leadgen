@@ -24,10 +24,19 @@ export default async function CrmPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
+  const { data: callLogs } = await supabase
+    .from("call_logs")
+    .select("id, prospect_id, called_at, outcome, contact_name, note")
+    .eq("user_id", user.id)
+    .order("called_at", { ascending: false })
+    .range(0, 4999);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (
     <CrmClient
       initialProspects={prospects ?? []}
       initialFolders={folders ?? []}
+      initialCallLogs={(callLogs ?? []) as any}
       userEmail={user.email ?? ""}
     />
   );

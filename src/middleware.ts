@@ -34,13 +34,14 @@ export async function middleware(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
 
-    // Protect /dashboard, /crm, /account and /booster routes
+    // Protect /dashboard, /crm, /account, /booster and /analytics routes
     if (
       !user &&
       (request.nextUrl.pathname.startsWith('/dashboard') ||
         request.nextUrl.pathname.startsWith('/crm') ||
         request.nextUrl.pathname.startsWith('/account') ||
-        request.nextUrl.pathname.startsWith('/booster'))
+        request.nextUrl.pathname.startsWith('/booster') ||
+        request.nextUrl.pathname.startsWith('/analytics'))
     ) {
       const url = request.nextUrl.clone()
       url.pathname = '/'
