@@ -31,12 +31,11 @@ export default async function CrmPage() {
     .order("called_at", { ascending: false })
     .range(0, 4999);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (
     <CrmClient
       initialProspects={prospects ?? []}
       initialFolders={folders ?? []}
-      initialCallLogs={(callLogs ?? []) as any}
+      initialCallLogs={callLogs as { id: string; prospect_id: string; called_at: string; outcome: string | null; contact_name: string | null; note: string }[] ?? []}
       userEmail={user.email ?? ""}
     />
   );

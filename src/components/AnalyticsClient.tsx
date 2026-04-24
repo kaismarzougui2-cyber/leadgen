@@ -139,6 +139,9 @@ export default function AnalyticsClient({
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-[#666666] hidden sm:block truncate max-w-[160px]">{userEmail}</span>
+          <span className="inline-flex items-center gap-1 bg-[#160002] border border-[#3a0002] text-[#E5000A] text-xs font-semibold px-2.5 py-1 rounded-full hidden sm:inline-flex">
+            {plan.charAt(0).toUpperCase() + plan.slice(1)}
+          </span>
           <button
             onClick={exportCSV}
             className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors p-1.5 rounded-[9px] hover:bg-[#111111] min-h-[44px]"

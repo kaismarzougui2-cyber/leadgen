@@ -285,6 +285,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         </div>
 
         <div className="flex items-center gap-3">
+          <span className="text-sm text-[#666666] hidden sm:block truncate max-w-[160px]">{user.email}</span>
           <span className="text-sm text-[#aaaaaa] hidden sm:block">
             <span className={remaining <= 2 ? "text-amber-400 font-semibold" : "text-white font-semibold"}>
               {searchesUsed}/{searchesLimit}
