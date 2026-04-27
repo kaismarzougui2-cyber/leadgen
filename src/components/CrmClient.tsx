@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Zap,
   Users,
@@ -112,30 +112,28 @@ interface ProspectFolder {
   created_at: string;
 }
 
+const DISPLAY_PAGE = 50; // rows rendered per page in list view
+
 export default function CrmClient({
   initialProspects,
   initialFolders = [],
-  initialCallLogs = [] as (CallLog & { prospect_id: string })[],
   userEmail,
 }: {
   initialProspects: Prospect[];
   initialFolders?: ProspectFolder[];
-  initialCallLogs?: (CallLog & { prospect_id: string })[];
   userEmail: string;
 }) {
   const [prospects, setProspects] = useState<Prospect[]>(initialProspects);
   const [folders, setFolders] = useState<ProspectFolder[]>(initialFolders);
-  // keyed by prospect_id
-  const [callLogs, setCallLogs] = useState<Record<string, CallLog[]>>(() => {
-    const map: Record<string, CallLog[]> = {};
-    for (const log of initialCallLogs) {
-      const { prospect_id, ...rest } = log as CallLog & { prospect_id: string };
-      if (!map[prospect_id]) map[prospect_id] = [];
-      map[prospect_id].push(rest);
-    }
-    return map;
-  });
+  const [callLogs, setCallLogs] = useState<Record<string, CallLog[]>>({});
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  // background loading
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [fullyLoaded, setFullyLoaded] = useState(initialProspects.length < 200);
+  // list pagination
+  const [displayLimit, setDisplayLimit] = useState(DISPLAY_PAGE);
+  // bottom sentinel for infinite scroll
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const [filterStatus, setFilterStatus] = useState<Status | "Tous">("Tous");
   const [filterNoWebsite, setFilterNoWebsite] = useState(false);
@@ -153,6 +151,74 @@ export default function CrmClient({
 
   const supabase = createClient();
   const { toast } = useToast();
+
+  // ── Load remaining prospects + call_logs in background after mount ──
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAll() {
+      setLoadingMore(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) { setLoadingMore(false); return; }
+
+      const PAGE = 1000;
+      // start at 200 (already loaded by SSR)
+      let offset = initialProspects.length >= 200 ? 200 : initialProspects.length;
+      const extra: Prospect[] = [];
+      while (!cancelled) {
+        const { data } = await supabase
+          .from("prospects")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .range(offset, offset + PAGE - 1);
+        if (!data || data.length === 0) break;
+        extra.push(...(data as Prospect[]));
+        if (!cancelled) setProspects(prev => [...prev, ...(data as Prospect[])]);
+        if (data.length < PAGE) break;
+        offset += PAGE;
+      }
+
+      // Load call_logs
+      const logsMap: Record<string, CallLog[]> = {};
+      let logOffset = 0;
+      while (!cancelled) {
+        const { data } = await supabase
+          .from("call_logs")
+          .select("id, prospect_id, called_at, outcome, contact_name, note")
+          .eq("user_id", user.id)
+          .order("called_at", { ascending: false })
+          .range(logOffset, logOffset + PAGE - 1);
+        if (!data || data.length === 0) break;
+        for (const log of data as (CallLog & { prospect_id: string })[]) {
+          const { prospect_id, ...rest } = log;
+          if (!logsMap[prospect_id]) logsMap[prospect_id] = [];
+          logsMap[prospect_id].push(rest);
+        }
+        if (data.length < PAGE) break;
+        logOffset += PAGE;
+      }
+      if (!cancelled) {
+        setCallLogs(logsMap);
+        setFullyLoaded(true);
+        setLoadingMore(false);
+      }
+    }
+    loadAll();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Infinite scroll: reveal more rows when sentinel enters viewport ──
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setDisplayLimit(l => l + DISPLAY_PAGE); },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   function exportCSV() {
     const headers = ["Nom", "Téléphone", "Adresse", "Note Google", "Site web", "Statut", "SIREN", "Activité", "Commentaire", "Date d'ajout", "Rappel le"];
@@ -303,6 +369,9 @@ export default function CrmClient({
     if (error) toast("Erreur lors du déplacement", "error");
   }
 
+  // Reset display limit whenever filters change
+  useEffect(() => { setDisplayLimit(DISPLAY_PAGE); }, [filterStatus, filterNoWebsite, filterCity, filterJob, filterFolder, search]);
+
   const uniqueCities = Array.from(new Set(prospects.map((p) => p.query_city).filter(Boolean))) as string[];
   const uniqueJobs  = Array.from(new Set(prospects.map((p) => p.query_job).filter(Boolean))) as string[];
 
@@ -412,9 +481,20 @@ export default function CrmClient({
         <div className="flex items-center justify-between flex-wrap gap-4 animate-fade-in">
           <div>
             <h1 className="text-3xl font-bold text-white tracking-tight">Mon CRM</h1>
-            <p className="text-[#aaaaaa] mt-1">
-              {prospects.length} prospect{prospects.length !== 1 ? "s" : ""} sauvegardé{prospects.length !== 1 ? "s" : ""}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-[#aaaaaa]">
+                {prospects.length} prospect{prospects.length !== 1 ? "s" : ""} sauvegardé{prospects.length !== 1 ? "s" : ""}
+              </p>
+              {loadingMore && (
+                <span className="flex items-center gap-1.5 text-xs text-[#555555]">
+                  <span className="animate-spin border border-[#333333] border-t-[#666666] rounded-full w-3 h-3" />
+                  chargement…
+                </span>
+              )}
+              {fullyLoaded && !loadingMore && (
+                <span className="text-xs text-emerald-600">✓ tout chargé</span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* View toggle */}
@@ -727,11 +807,11 @@ export default function CrmClient({
           )
         ) : (
           <div className="space-y-3">
-            {filtered.map((prospect, index) => (
+            {filtered.slice(0, displayLimit).map((prospect, index) => (
               <div
                 key={prospect.id}
                 className="animate-fade-in"
-                style={{ animationDelay: `${Math.min(index * 0.04, 0.3)}s` }}
+                style={{ animationDelay: `${Math.min(index * 0.02, 0.2)}s` }}
               >
                 <ProspectRow
                   prospect={prospect}
@@ -756,6 +836,13 @@ export default function CrmClient({
                 />
               </div>
             ))}
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="h-1" />
+            {filtered.length > displayLimit && (
+              <p className="text-center text-xs text-[#444444] py-2">
+                {filtered.length - displayLimit} prospects supplémentaires — défile pour en voir plus
+              </p>
+            )}
           </div>
         )}
       </main>
