@@ -12,7 +12,7 @@ export default async function BoosterPage() {
 
   let { data: sub } = await supabase
     .from("subscriptions")
-    .select("plan, searches_used, searches_limit, extra_credits")
+    .select("plan, searches_used, searches_limit, extra_credits, is_staff")
     .eq("user_id", user.id)
     .single();
 
@@ -25,7 +25,7 @@ export default async function BoosterPage() {
     });
     const { data: newSub } = await supabase
       .from("subscriptions")
-      .select("plan, searches_used, searches_limit, extra_credits")
+      .select("plan, searches_used, searches_limit, extra_credits, is_staff")
       .eq("user_id", user.id)
       .single();
     sub = newSub;
@@ -37,6 +37,7 @@ export default async function BoosterPage() {
       plan={sub?.plan ?? "free"}
       searchesUsed={sub?.searches_used ?? 0}
       searchesLimit={(sub?.searches_limit ?? 5) + (sub?.extra_credits ?? 0)}
+      isStaff={sub?.is_staff ?? false}
     />
   );
 }

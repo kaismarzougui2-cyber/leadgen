@@ -43,6 +43,7 @@ interface Props {
   plan: string;
   searchesUsed: number;
   searchesLimit: number;
+  isStaff?: boolean;
 }
 
 // ── Données géographiques ────────────────────────────────────────────────────
@@ -126,8 +127,9 @@ export default function BoosterClient({
   plan,
   searchesUsed: initialUsed,
   searchesLimit,
+  isStaff = false,
 }: Props) {
-  const isPaid = plan !== "free";
+  const isPaid = isStaff || plan !== "free";
 
   const [boostMode, setBoostMode] = useState<"manual" | "auto">("manual");
   const [trade, setTrade] = useState("");
@@ -155,7 +157,7 @@ export default function BoosterClient({
   // Autocomplete villes
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
 
-  const remaining = searchesLimit - searchesUsed;
+  const remaining = isStaff ? Infinity : searchesLimit - searchesUsed;
 
   const zoneValue =
     zoneType === "city" ? cityZone : zoneType === "department" ? deptZone : regionZone;
@@ -342,14 +344,20 @@ export default function BoosterClient({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-[#aaaaaa] hidden sm:block">
-            <span className={remaining <= 2 ? "text-amber-400 font-semibold" : "text-white font-semibold"}>
-              {searchesUsed}/{searchesLimit}
-            </span>{" "}
-            crédits
-          </span>
-          <span className="inline-flex items-center gap-1 bg-[#160002] border border-[#3a0002] text-[#E5000A] text-xs font-semibold px-2.5 py-1 rounded-full">
-            {PLAN_LABELS[plan] ?? plan}
+          {isStaff ? (
+            <span className="text-sm hidden sm:block">
+              <span className="text-emerald-400 font-semibold">∞ Illimité</span>
+            </span>
+          ) : (
+            <span className="text-sm text-[#aaaaaa] hidden sm:block">
+              <span className={remaining <= 2 ? "text-amber-400 font-semibold" : "text-white font-semibold"}>
+                {searchesUsed}/{searchesLimit}
+              </span>{" "}
+              crédits
+            </span>
+          )}
+          <span className={`inline-flex items-center gap-1 border text-xs font-semibold px-2.5 py-1 rounded-full ${isStaff ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-[#160002] border-[#3a0002] text-[#E5000A]"}`}>
+            {isStaff ? "Staff" : (PLAN_LABELS[plan] ?? plan)}
           </span>
           {plan === "free" && (
             <Link

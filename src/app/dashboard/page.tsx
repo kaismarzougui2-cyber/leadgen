@@ -14,7 +14,7 @@ export default async function DashboardPage() {
 
   let { data: sub } = await supabase
     .from("subscriptions")
-    .select("plan, searches_used, searches_limit, extra_credits")
+    .select("plan, searches_used, searches_limit, extra_credits, is_staff")
     .eq("user_id", user.id)
     .single();
 
@@ -27,7 +27,7 @@ export default async function DashboardPage() {
     });
     const { data: newSub } = await supabase
       .from("subscriptions")
-      .select("plan, searches_used, searches_limit, extra_credits")
+      .select("plan, searches_used, searches_limit, extra_credits, is_staff")
       .eq("user_id", user.id)
       .single();
     sub = newSub;
@@ -39,6 +39,7 @@ export default async function DashboardPage() {
       plan={sub?.plan ?? "free"}
       searchesUsed={sub?.searches_used ?? 0}
       searchesLimit={(sub?.searches_limit ?? 5) + (sub?.extra_credits ?? 0)}
+      isStaff={sub?.is_staff ?? false}
     />
   );
 }

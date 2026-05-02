@@ -135,44 +135,47 @@ export async function POST(request: NextRequest) {
     // ── Vérification du plan ──────────────────────────────────────────────────
     let { data: sub } = await supabase
       .from('subscriptions')
-      .select('id, plan, searches_used, searches_limit, extra_credits, period_start')
+      .select('id, plan, searches_used, searches_limit, extra_credits, period_start, is_staff')
       .eq('user_id', user.id)
       .single()
 
     if (!sub) return NextResponse.json({ error: 'Abonnement introuvable.' }, { status: 500 })
 
-    if (!BOOST_ALLOWED_PLANS.has(sub.plan)) {
-      return NextResponse.json(
-        { error: 'Le Mode Booster est disponible à partir du plan Starter.', upgradRequired: true },
-        { status: 403 }
-      )
-    }
-
-    // Auto-reset quota mensuel
-    if (sub.period_start) {
-      const daysSince = (Date.now() - new Date(sub.period_start).getTime()) / 86_400_000
-      if (daysSince >= 30) {
-        const now = new Date().toISOString()
-        await supabase
-          .from('subscriptions')
-          .update({ searches_used: 0, period_start: now, updated_at: now })
-          .eq('user_id', user.id)
-        sub = { ...sub, searches_used: 0, period_start: now }
-      }
-    }
-
+    const isStaff = sub.is_staff === true
     const planLimit = PLAN_LIMITS[(sub.plan as PlanId) ?? 'free'] ?? 5
-    const totalAllowed = planLimit + (sub.extra_credits ?? 0)
-    const remaining = totalAllowed - sub.searches_used
+    const totalAllowed = isStaff ? Number.MAX_SAFE_INTEGER : planLimit + (sub.extra_credits ?? 0)
+    const remaining = isStaff ? Number.MAX_SAFE_INTEGER : totalAllowed - sub.searches_used
 
-    if (remaining <= 0) {
-      return NextResponse.json(
-        {
-          error: `Quota atteint (${sub.searches_used}/${totalAllowed}). Passez à un plan supérieur.`,
-          limitReached: true,
-        },
-        { status: 429 }
-      )
+    if (!isStaff) {
+      if (!BOOST_ALLOWED_PLANS.has(sub.plan)) {
+        return NextResponse.json(
+          { error: 'Le Mode Booster est disponible à partir du plan Starter.', upgradRequired: true },
+          { status: 403 }
+        )
+      }
+
+      // Auto-reset quota mensuel
+      if (sub.period_start) {
+        const daysSince = (Date.now() - new Date(sub.period_start).getTime()) / 86_400_000
+        if (daysSince >= 30) {
+          const now = new Date().toISOString()
+          await supabase
+            .from('subscriptions')
+            .update({ searches_used: 0, period_start: now, updated_at: now })
+            .eq('user_id', user.id)
+          sub = { ...sub, searches_used: 0, period_start: now }
+        }
+      }
+
+      if (remaining <= 0) {
+        return NextResponse.json(
+          {
+            error: `Quota atteint (${sub.searches_used}/${totalAllowed}). Passez à un plan supérieur.`,
+            limitReached: true,
+          },
+          { status: 429 }
+        )
+      }
     }
 
     // ── Sélection des villes via l'algorithme Boost ───────────────────────────
@@ -239,26 +242,28 @@ export async function POST(request: NextRequest) {
 
     const selectedCities = availableCities.slice(0, creditsToUse)
 
-    // ── Déduction atomique des crédits ────────────────────────────────────────
+    // ── Déduction atomique des crédits (ignorée pour staff) ──────────────────
     const now = new Date().toISOString()
-    const { data: incremented } = await supabase
-      .from('subscriptions')
-      .update({ searches_used: sub.searches_used + creditsToUse, updated_at: now })
-      .eq('user_id', user.id)
-      .eq('searches_used', sub.searches_used)
-      .lte('searches_used', totalAllowed - creditsToUse)
-      .select('searches_used')
+    if (!isStaff) {
+      const { data: incremented } = await supabase
+        .from('subscriptions')
+        .update({ searches_used: sub.searches_used + creditsToUse, updated_at: now })
+        .eq('user_id', user.id)
+        .eq('searches_used', sub.searches_used)
+        .lte('searches_used', totalAllowed - creditsToUse)
+        .select('searches_used')
 
-    if (!incremented || incremented.length === 0) {
-      return NextResponse.json(
-        { error: 'Erreur quota (concurrence). Réessayez.', limitReached: true },
-        { status: 429 }
-      )
+      if (!incremented || incremented.length === 0) {
+        return NextResponse.json(
+          { error: 'Erreur quota (concurrence). Réessayez.', limitReached: true },
+          { status: 429 }
+        )
+      }
     }
 
     // ── Recherche pour chaque ville ───────────────────────────────────────────
     const apiKey = process.env.GOOGLE_PLACES_API_KEY
-    const maxPerCity = RESULTS_LIMIT_PER_CITY[sub.plan] ?? 5
+    const maxPerCity = isStaff ? 60 : (RESULTS_LIMIT_PER_CITY[sub.plan] ?? 5)
 
     const allResults: BoostResult[] = []
     const citiesSearched: string[] = []

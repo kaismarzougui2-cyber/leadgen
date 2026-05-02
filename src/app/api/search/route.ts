@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Quota check via subscriptions table
     let { data: sub } = await supabase
       .from('subscriptions')
-      .select('id, plan, searches_used, searches_limit, extra_credits, period_start')
+      .select('id, plan, searches_used, searches_limit, extra_credits, period_start, is_staff')
       .eq('user_id', user.id)
       .single()
 
@@ -48,53 +48,57 @@ export async function POST(request: NextRequest) {
       })
       const { data: newSub } = await supabase
         .from('subscriptions')
-        .select('id, plan, searches_used, searches_limit, extra_credits, period_start')
+        .select('id, plan, searches_used, searches_limit, extra_credits, period_start, is_staff')
         .eq('user_id', user.id)
         .single()
       sub = newSub
-    }
-
-    // Auto-reset if 30 days have passed since period_start
-    if (sub?.period_start) {
-      const daysSince = (Date.now() - new Date(sub.period_start).getTime()) / 86_400_000
-      if (daysSince >= 30) {
-        const now = new Date().toISOString()
-        await supabase
-          .from('subscriptions')
-          .update({ searches_used: 0, period_start: now, updated_at: now })
-          .eq('user_id', user.id)
-        sub = { ...sub, searches_used: 0, period_start: now }
-      }
     }
 
     if (!sub) {
       return NextResponse.json({ error: 'Abonnement introuvable.' }, { status: 500 })
     }
 
-    const planLimit = PLAN_LIMITS[(sub.plan as PlanId) ?? 'free'] ?? 5
-    const totalAllowed = planLimit + (sub.extra_credits ?? 0)
+    const isStaff = sub.is_staff === true
 
-    // ── Atomic quota increment ────────────────────────────────────────────────
-    const now = new Date().toISOString()
-    const { data: incremented } = await supabase
-      .from('subscriptions')
-      .update({ searches_used: sub.searches_used + 1, updated_at: now })
-      .eq('user_id', user.id)
-      .eq('searches_used', sub.searches_used)
-      .lt('searches_used', totalAllowed)
-      .select('searches_used')
+    if (!isStaff) {
+      // Auto-reset if 30 days have passed since period_start
+      if (sub.period_start) {
+        const daysSince = (Date.now() - new Date(sub.period_start).getTime()) / 86_400_000
+        if (daysSince >= 30) {
+          const now = new Date().toISOString()
+          await supabase
+            .from('subscriptions')
+            .update({ searches_used: 0, period_start: now, updated_at: now })
+            .eq('user_id', user.id)
+          sub = { ...sub, searches_used: 0, period_start: now }
+        }
+      }
 
-    if (!incremented || incremented.length === 0) {
-      return NextResponse.json(
-        {
-          error: `Quota de 30 jours atteint (${sub.searches_used}/${totalAllowed} recherches). Passez à un plan supérieur.`,
-          limitReached: true,
-          plan: sub.plan,
-          searchesUsed: sub.searches_used,
-          searchesLimit: totalAllowed,
-        },
-        { status: 429 }
-      )
+      const planLimit = PLAN_LIMITS[(sub.plan as PlanId) ?? 'free'] ?? 5
+      const totalAllowed = planLimit + (sub.extra_credits ?? 0)
+
+      // ── Atomic quota increment ──────────────────────────────────────────────
+      const now = new Date().toISOString()
+      const { data: incremented } = await supabase
+        .from('subscriptions')
+        .update({ searches_used: sub.searches_used + 1, updated_at: now })
+        .eq('user_id', user.id)
+        .eq('searches_used', sub.searches_used)
+        .lt('searches_used', totalAllowed)
+        .select('searches_used')
+
+      if (!incremented || incremented.length === 0) {
+        return NextResponse.json(
+          {
+            error: `Quota de 30 jours atteint (${sub.searches_used}/${totalAllowed} recherches). Passez à un plan supérieur.`,
+            limitReached: true,
+            plan: sub.plan,
+            searchesUsed: sub.searches_used,
+            searchesLimit: totalAllowed,
+          },
+          { status: 429 }
+        )
+      }
     }
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -113,7 +117,7 @@ export async function POST(request: NextRequest) {
       growth: 20,
       pro: 60,
     }
-    const maxResults = RESULTS_LIMIT[sub?.plan ?? 'free'] ?? 5
+    const maxResults = isStaff ? 60 : (RESULTS_LIMIT[sub?.plan ?? 'free'] ?? 5)
 
     // ── Cache lookup ──────────────────────────────────────────────────────────
     const cacheCity = city.toLowerCase()

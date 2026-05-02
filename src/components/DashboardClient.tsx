@@ -52,6 +52,7 @@ interface Props {
   plan: string;
   searchesUsed: number;
   searchesLimit: number;
+  isStaff?: boolean;
 }
 
 const PLAN_LABELS: Record<string, string> = {
@@ -61,7 +62,7 @@ const PLAN_LABELS: Record<string, string> = {
   pro: "Pro",
 };
 
-export default function DashboardClient({ user, plan, searchesUsed: initialUsed, searchesLimit }: Props) {
+export default function DashboardClient({ user, plan, searchesUsed: initialUsed, searchesLimit, isStaff = false }: Props) {
   const [job, setJob] = useState("");
   const [city, setCity] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -82,8 +83,8 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   const [roiRevenue, setRoiRevenue] = useState(500);
   const roiTotal = Math.round((roiLeads * roiConversion) / 100 * roiRevenue);
 
-  const remaining = searchesLimit - searchesUsed;
-  const limitReached = remaining <= 0;
+  const remaining = isStaff ? Infinity : searchesLimit - searchesUsed;
+  const limitReached = !isStaff && remaining <= 0;
 
   const allSaved = results.length > 0 && results.every((r) => r.alreadySaved);
 
@@ -286,14 +287,20 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
 
         <div className="flex items-center gap-3">
           <span className="text-sm text-[#666666] hidden sm:block truncate max-w-[160px]">{user.email}</span>
-          <span className="text-sm text-[#aaaaaa] hidden sm:block">
-            <span className={remaining <= 2 ? "text-amber-400 font-semibold" : "text-white font-semibold"}>
-              {searchesUsed}/{searchesLimit}
-            </span>{" "}
-            recherches
-          </span>
-          <span className="inline-flex items-center gap-1 bg-[#160002] border border-[#3a0002] text-[#E5000A] text-xs font-semibold px-2.5 py-1 rounded-full">
-            {PLAN_LABELS[plan] ?? plan}
+          {isStaff ? (
+            <span className="text-sm hidden sm:block">
+              <span className="text-emerald-400 font-semibold">∞ Illimité</span>
+            </span>
+          ) : (
+            <span className="text-sm text-[#aaaaaa] hidden sm:block">
+              <span className={remaining <= 2 ? "text-amber-400 font-semibold" : "text-white font-semibold"}>
+                {searchesUsed}/{searchesLimit}
+              </span>{" "}
+              recherches
+            </span>
+          )}
+          <span className={`inline-flex items-center gap-1 border text-xs font-semibold px-2.5 py-1 rounded-full ${isStaff ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-[#160002] border-[#3a0002] text-[#E5000A]"}`}>
+            {isStaff ? "Staff" : (PLAN_LABELS[plan] ?? plan)}
           </span>
           {plan === "free" && (
             <Link
