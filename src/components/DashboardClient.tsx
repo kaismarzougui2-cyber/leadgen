@@ -66,6 +66,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   const [job, setJob] = useState("");
   const [city, setCity] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [filterNoWebsite, setFilterNoWebsite] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
@@ -86,7 +87,8 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   const remaining = isStaff ? Infinity : searchesLimit - searchesUsed;
   const limitReached = !isStaff && remaining <= 0;
 
-  const allSaved = results.length > 0 && results.every((r) => r.alreadySaved);
+  const displayedResults = filterNoWebsite ? results.filter((r) => !r.website) : results;
+  const allSaved = displayedResults.length > 0 && displayedResults.every((r) => r.alreadySaved);
 
   function getSuggestions(): { label: string; job: string; city: string }[] {
     if (!job || !city) return [];
@@ -208,7 +210,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
       return;
     }
 
-    const prospects = results.filter((r) => !r.alreadySaved).map((r) => ({
+    const prospects = displayedResults.filter((r) => !r.alreadySaved).map((r) => ({
       user_id: authUser.id,
       name: r.name,
       phone: r.phone,
@@ -422,6 +424,24 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
             </button>
           </form>
 
+          {/* Filtre sans site web */}
+          <button
+            onClick={() => setFilterNoWebsite((v) => !v)}
+            className={`flex items-center gap-2 self-start px-4 py-2 rounded-[10px] border text-sm font-medium transition-all ${
+              filterNoWebsite
+                ? "bg-[#160002] border-[#E5000A]/40 text-[#E5000A]"
+                : "bg-[#0d0d0d] border-[#1a1a1a] text-[#aaaaaa] hover:text-white hover:border-[#2a2a2a]"
+            }`}
+          >
+            <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+              filterNoWebsite ? "bg-[#E5000A] border-[#E5000A]" : "border-[#333333]"
+            }`}>
+              {filterNoWebsite && <span className="text-white text-[10px] font-bold leading-none">✓</span>}
+            </span>
+            <Globe className="w-3.5 h-3.5" />
+            Uniquement les entreprises sans site web
+          </button>
+
           {/* Alerte quota */}
           {limitReached && (
             <div className="flex items-center justify-between gap-3 p-4 bg-amber-500/8 border border-amber-500/25 rounded-[12px] text-amber-400 text-sm animate-fade-in">
@@ -539,7 +559,10 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-3 flex-wrap">
                     <h2 className="text-xl font-bold text-white">
-                      {results.length} résultat{results.length !== 1 ? "s" : ""}
+                      {displayedResults.length} résultat{displayedResults.length !== 1 ? "s" : ""}
+                      {filterNoWebsite && results.length !== displayedResults.length && (
+                        <span className="text-sm font-normal text-[#555555] ml-2">sur {results.length}</span>
+                      )}
                     </h2>
                     {hiddenCount > 0 && (
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-[#160002] border border-[#3a0002] text-[#E5000A] px-2.5 py-1 rounded-full">
@@ -547,13 +570,13 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                         {hiddenCount} déjà dans votre CRM
                       </span>
                     )}
-                    {allSaved && results.length > 0 && (
+                    {allSaved && displayedResults.length > 0 && (
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-amber-500/10 border border-amber-500/25 text-amber-400 px-2.5 py-1 rounded-full">
                         Tous déjà dans le CRM
                       </span>
                     )}
                   </div>
-                  {results.length > 0 && (
+                  {displayedResults.length > 0 && (
                     <div className="flex items-center gap-3">
                       {saveStatus.savedCount > 0 && (
                         <Link
@@ -592,17 +615,17 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
                 )}
 
                 {/* Empty state */}
-                {results.length === 0 ? (
+                {displayedResults.length === 0 ? (
                   <EmptyState
                     icon={Search}
-                    title="Aucun résultat trouvé"
-                    description="Essayez avec un autre métier, une ville différente ou vérifiez l'orthographe."
+                    title={filterNoWebsite && results.length > 0 ? "Aucun résultat sans site web" : "Aucun résultat trouvé"}
+                    description={filterNoWebsite && results.length > 0 ? `Les ${results.length} résultats ont tous un site web. Désactivez le filtre pour les voir.` : "Essayez avec un autre métier, une ville différente ou vérifiez l'orthographe."}
                   />
                 ) : (
                   <>
                     {/* Grille de cards avec stagger */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {results.map((result, index) => (
+                      {displayedResults.map((result, index) => (
                         <LeadCard
                           key={result.id}
                           result={result}

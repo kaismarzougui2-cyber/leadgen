@@ -150,6 +150,7 @@ export default function BoosterClient({
   const [creditsUsed, setCreditsUsed] = useState(0);
   const [searchesUsed, setSearchesUsed] = useState(initialUsed);
 
+  const [filterNoWebsite, setFilterNoWebsite] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -158,6 +159,7 @@ export default function BoosterClient({
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
 
   const remaining = isStaff ? Infinity : searchesLimit - searchesUsed;
+  const displayedResults = filterNoWebsite ? results.filter((r) => !r.website) : results;
 
   const zoneValue =
     zoneType === "city" ? cityZone : zoneType === "department" ? deptZone : regionZone;
@@ -257,7 +259,7 @@ export default function BoosterClient({
 
   // ── Sauvegarde dans le CRM ───────────────────────────────────────────────
   async function handleSaveAll() {
-    const newResults = results.filter((r) => !r.alreadySaved);
+    const newResults = displayedResults.filter((r) => !r.alreadySaved);
     if (!newResults.length) return;
 
     setSaveLoading(true);
@@ -646,6 +648,25 @@ export default function BoosterClient({
               )}
             </div>}
 
+            {/* Filtre sans site web */}
+            <button
+              onClick={() => setFilterNoWebsite((v) => !v)}
+              type="button"
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-[10px] border text-sm font-medium transition-all ${
+                filterNoWebsite
+                  ? "bg-[#160002] border-[#E5000A]/40 text-[#E5000A]"
+                  : "bg-[#0d0d0d] border-[#1a1a1a] text-[#aaaaaa] hover:text-white hover:border-[#2a2a2a]"
+              }`}
+            >
+              <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                filterNoWebsite ? "bg-[#E5000A] border-[#E5000A]" : "border-[#333333]"
+              }`}>
+                {filterNoWebsite && <span className="text-white text-[10px] font-bold leading-none">✓</span>}
+              </span>
+              <Globe className="w-3.5 h-3.5" />
+              Uniquement les entreprises sans site web
+            </button>
+
             {/* Bouton lancement */}
             <button
               type="button"
@@ -739,7 +760,7 @@ export default function BoosterClient({
                   <button
                     type="button"
                     onClick={handleSaveAll}
-                    disabled={saveLoading || results.every((r) => r.alreadySaved)}
+                    disabled={saveLoading || displayedResults.every((r) => r.alreadySaved)}
                     className="flex items-center gap-2 bg-[#0d0d0d] hover:bg-[#1a1a1a] disabled:opacity-50 disabled:cursor-not-allowed border border-[#1a1a1a] text-white font-semibold px-4 py-2 rounded-[9px] transition-colors text-sm min-h-[36px]"
                   >
                     {saveLoading ? (
@@ -754,9 +775,14 @@ export default function BoosterClient({
             )}
 
             {/* Grille des résultats */}
-            {results.length > 0 ? (
+            {results.length > 0 && displayedResults.length === 0 && (
+              <div className="p-4 bg-[#0d0d0d] border border-[#1a1a1a] rounded-[12px] text-center text-sm text-[#555555]">
+                Tous les {results.length} résultats ont un site web. Désactivez le filtre pour les voir.
+              </div>
+            )}
+            {displayedResults.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {results.map((r) => (
+                {displayedResults.map((r) => (
                   <div
                     key={r.id}
                     className={`bg-[#0d0d0d] border rounded-[12px] p-5 space-y-3 transition-all ${
