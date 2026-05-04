@@ -26,6 +26,7 @@ import Link from "next/link";
 import { LeadCardSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { loadCommunes, getNearbyCities, type NearbyCity } from "@/lib/communes";
+import MobileNav from "@/components/ui/MobileNav";
 
 interface SearchResult {
   id: string;
@@ -330,46 +331,7 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
         </div>
       </nav>
 
-      {/* ── Mobile bottom tab bar ───────────────────────────── */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-t border-[#1a1a1a] flex">
-        <Link
-          href="/dashboard"
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#E5000A] bg-[#160002]"
-        >
-          <Search className="w-5 h-5" />
-          <span className="text-xs font-semibold">Recherche</span>
-        </Link>
-        <Link
-          href="/booster"
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#666666] active:bg-[#111111]"
-        >
-          <Zap className="w-5 h-5" />
-          <span className="text-xs font-medium">Booster</span>
-        </Link>
-        <Link
-          href="/crm"
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#666666] active:bg-[#111111]"
-        >
-          <Users className="w-5 h-5" />
-          <span className="text-xs font-medium">Mon CRM</span>
-        </Link>
-        {plan === "free" && (
-          <Link
-            href="/pricing"
-            className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#E5000A] active:bg-[#111111]"
-          >
-            <Zap className="w-5 h-5" />
-            <span className="text-xs font-semibold">Upgrader</span>
-          </Link>
-        )}
-        <button
-          onClick={handleLogout}
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#666666] active:bg-[#111111]"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="text-xs font-medium">Déco.</span>
-        </button>
-      </div>
+      <MobileNav currentPage="dashboard" onLogout={handleLogout} plan={plan} isStaff={isStaff} />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-10 space-y-10">
 

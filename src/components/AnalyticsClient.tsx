@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import MobileNav from "@/components/ui/MobileNav";
 
 interface Props {
   totalProspects: number;
@@ -159,21 +160,7 @@ export default function AnalyticsClient({
         </div>
       </nav>
 
-      {/* ── Mobile tab bar ── */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-t border-[#1a1a1a] flex">
-        <Link href="/dashboard" className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#666666]">
-          <Search className="w-5 h-5" /><span className="text-xs">Recherche</span>
-        </Link>
-        <Link href="/crm" className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#666666]">
-          <Users className="w-5 h-5" /><span className="text-xs">CRM</span>
-        </Link>
-        <Link href="/analytics" className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#E5000A] bg-[#160002]">
-          <BarChart2 className="w-5 h-5" /><span className="text-xs font-semibold">Analytics</span>
-        </Link>
-        <button onClick={handleLogout} className="flex-1 flex flex-col items-center justify-center gap-1 py-3 min-h-[56px] text-[#666666]">
-          <LogOut className="w-5 h-5" /><span className="text-xs">Déco.</span>
-        </button>
-      </div>
+      <MobileNav currentPage="analytics" onLogout={handleLogout} />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-10 space-y-10">
 
