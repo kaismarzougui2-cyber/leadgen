@@ -10,16 +10,13 @@ import {
   Star,
   Loader2,
   TrendingUp,
-  LogOut,
   BookmarkPlus,
   CheckCircle,
   X,
   Users,
   AlertTriangle,
-  Settings,
   Lightbulb,
   PhoneCall,
-  BarChart2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -27,6 +24,7 @@ import { LeadCardSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { loadCommunes, getNearbyCities, type NearbyCity } from "@/lib/communes";
 import MobileNav from "@/components/ui/MobileNav";
+import Sidebar from "@/components/ui/Sidebar";
 
 interface SearchResult {
   id: string;
@@ -247,90 +245,16 @@ export default function DashboardClient({ user, plan, searchesUsed: initialUsed,
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0">
-      {/* ── Navbar ───────────────────────────────────────────── */}
-      <nav className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between sticky top-0 bg-black/95 backdrop-blur-sm z-40">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center shadow-[0_0_12px_rgba(229,0,10,0.3)]">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white tracking-tight">LeadGen</span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1">
-            <Link
-              href="/dashboard"
-              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-white bg-[#1a1a1a]"
-            >
-              Recherche
-            </Link>
-            <Link
-              href="/booster"
-              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              Mode Booster
-            </Link>
-            <Link
-              href="/crm"
-              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5"
-            >
-              <Users className="w-3.5 h-3.5" />
-              CRM
-            </Link>
-            <Link
-              href="/analytics"
-              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5"
-            >
-              <BarChart2 className="w-3.5 h-3.5" />
-              Analytics
-            </Link>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-[#666666] hidden sm:block truncate max-w-[160px]">{user.email}</span>
-          {isStaff ? (
-            <span className="text-sm hidden sm:block">
-              <span className="text-emerald-400 font-semibold">∞ Illimité</span>
-            </span>
-          ) : (
-            <span className="text-sm text-[#aaaaaa] hidden sm:block">
-              <span className={remaining <= 2 ? "text-amber-400 font-semibold" : "text-white font-semibold"}>
-                {searchesUsed}/{searchesLimit}
-              </span>{" "}
-              recherches
-            </span>
-          )}
-          <span className={`inline-flex items-center gap-1 border text-xs font-semibold px-2.5 py-1 rounded-full ${isStaff ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-[#160002] border-[#3a0002] text-[#E5000A]"}`}>
-            {isStaff ? "Staff" : (PLAN_LABELS[plan] ?? plan)}
-          </span>
-          {plan === "free" && (
-            <Link
-              href="/pricing"
-              className="hidden sm:inline-flex items-center gap-1 bg-[#E5000A] hover:bg-[#CC0000] text-white text-xs font-bold px-3 py-2 rounded-[9px] transition-colors min-h-[36px]"
-            >
-              <Zap className="w-3 h-3" />
-              Upgrader
-            </Link>
-          )}
-          <Link
-            href="/account"
-            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors p-1.5 rounded-[9px] hover:bg-[#111111] min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:justify-start"
-          >
-            <Settings className="w-4 h-4" />
-            <span className="hidden sm:block">Compte</span>
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors p-1.5 rounded-[9px] hover:bg-[#111111] min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:justify-start"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:block">Déconnexion</span>
-          </button>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0 sm:pl-56">
+      <Sidebar
+        currentPage="dashboard"
+        onLogout={handleLogout}
+        userEmail={user.email}
+        plan={plan}
+        isStaff={isStaff}
+        searchesUsed={searchesUsed}
+        searchesLimit={searchesLimit}
+      />
       <MobileNav currentPage="dashboard" onLogout={handleLogout} plan={plan} isStaff={isStaff} />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-10 space-y-10">

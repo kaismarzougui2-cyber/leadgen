@@ -5,7 +5,6 @@ import {
   Zap,
   Users,
   Search,
-  LogOut,
   Phone,
   PhoneCall,
   MapPin,
@@ -13,7 +12,6 @@ import {
   FileText,
   Globe,
   Download,
-  Settings,
   CheckCircle,
   Calendar,
   X,
@@ -23,7 +21,6 @@ import {
   Folder,
   Plus,
   Upload,
-  BarChart2,
   LayoutList,
   LayoutGrid,
 } from "lucide-react";
@@ -34,6 +31,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import CsvImportModal from "@/components/CsvImportModal";
 import KanbanBoard from "@/components/KanbanBoard";
 import MobileNav from "@/components/ui/MobileNav";
+import Sidebar from "@/components/ui/Sidebar";
 
 const STATUSES = [
   "À appeler",
@@ -398,59 +396,8 @@ export default function CrmClient({
   const hasActiveFilters = filterStatus !== "Tous" || filterNoWebsite || filterCity || filterJob || filterFolder || search;
 
   return (
-    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0">
-
-      {/* ── Navbar ─────────────────────────────────────────── */}
-      <nav className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between sticky top-0 bg-black/95 backdrop-blur-sm z-40">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center shadow-[0_0_12px_rgba(229,0,10,0.3)]">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white tracking-tight">LeadGen</span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1">
-            <Link
-              href="/dashboard"
-              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors"
-            >
-              Recherche
-            </Link>
-            <Link
-              href="/crm"
-              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-white bg-[#1a1a1a] flex items-center gap-1.5"
-            >
-              <Users className="w-3.5 h-3.5" />
-              CRM
-            </Link>
-            <Link
-              href="/analytics"
-              className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5"
-            >
-              <BarChart2 className="w-3.5 h-3.5" />
-              Analytics
-            </Link>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-[#666666] hidden sm:block truncate max-w-[160px]">{userEmail}</span>
-          <Link
-            href="/account"
-            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors p-1.5 rounded-[9px] hover:bg-[#111111] min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:justify-start"
-          >
-            <Settings className="w-4 h-4" />
-            <span className="hidden sm:block">Compte</span>
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors p-1.5 rounded-[9px] hover:bg-[#111111] min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:justify-start"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:block">Déconnexion</span>
-          </button>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0 sm:pl-56">
+      <Sidebar currentPage="crm" onLogout={handleLogout} userEmail={userEmail} />
       <MobileNav currentPage="crm" onLogout={handleLogout} />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-10 space-y-8">

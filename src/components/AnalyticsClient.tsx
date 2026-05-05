@@ -5,12 +5,12 @@ import {
   Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import {
-  Zap, Users, TrendingUp, Phone, Calendar, Search,
-  LogOut, Settings, Download, BarChart2,
+  Users, TrendingUp, Phone, Calendar, Search,
+  Download, BarChart2,
 } from "lucide-react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import MobileNav from "@/components/ui/MobileNav";
+import Sidebar from "@/components/ui/Sidebar";
 
 interface Props {
   totalProspects: number;
@@ -114,52 +114,15 @@ export default function AnalyticsClient({
     .map((s) => ({ name: s.replace("N'a pas répondu", "Absent"), count: statusCounts[s], fill: STATUS_COLORS_MAP[s] ?? "#666" }));
 
   return (
-    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0">
-
-      {/* ── Navbar ── */}
-      <nav className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between sticky top-0 bg-black/95 backdrop-blur-sm z-40">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center shadow-[0_0_12px_rgba(229,0,10,0.3)]">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white tracking-tight">LeadGen</span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1">
-            <Link href="/dashboard" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors">Recherche</Link>
-            <Link href="/booster" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-[#E5000A]" />Booster
-            </Link>
-            <Link href="/crm" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5" />CRM
-            </Link>
-            <Link href="/analytics" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-white bg-[#1a1a1a] flex items-center gap-1.5">
-              <BarChart2 className="w-3.5 h-3.5 text-[#E5000A]" />Analytics
-            </Link>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-[#666666] hidden sm:block truncate max-w-[160px]">{userEmail}</span>
-          <span className="inline-flex items-center gap-1 bg-[#160002] border border-[#3a0002] text-[#E5000A] text-xs font-semibold px-2.5 py-1 rounded-full hidden sm:inline-flex">
-            {plan.charAt(0).toUpperCase() + plan.slice(1)}
-          </span>
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors p-1.5 rounded-[9px] hover:bg-[#111111] min-h-[44px]"
-            title="Exporter les stats"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:block">Export</span>
-          </button>
-          <Link href="/account" className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors p-1.5 rounded-[9px] hover:bg-[#111111] min-h-[44px]">
-            <Settings className="w-4 h-4" /><span className="hidden sm:block">Compte</span>
-          </Link>
-          <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors p-1.5 rounded-[9px] hover:bg-[#111111] min-h-[44px]">
-            <LogOut className="w-4 h-4" /><span className="hidden sm:block">Déconnexion</span>
-          </button>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0 sm:pl-56">
+      <Sidebar
+        currentPage="analytics"
+        onLogout={handleLogout}
+        userEmail={userEmail}
+        plan={plan}
+        searchesUsed={searchesUsed}
+        searchesLimit={searchesLimit}
+      />
       <MobileNav currentPage="analytics" onLogout={handleLogout} />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-10 space-y-10">
