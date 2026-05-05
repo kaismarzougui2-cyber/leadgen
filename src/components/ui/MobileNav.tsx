@@ -23,10 +23,8 @@ interface Props {
 export default function MobileNav({ currentPage, onLogout, plan, isStaff }: Props) {
   const [open, setOpen] = useState(false);
 
-  // Close menu when navigating
   useEffect(() => { setOpen(false); }, [currentPage]);
 
-  // Prevent body scroll when menu is open
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -34,8 +32,8 @@ export default function MobileNav({ currentPage, onLogout, plan, isStaff }: Prop
 
   return (
     <>
-      {/* ── Bottom tab bar ── */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-t border-[#1a1a1a] flex">
+      {/* ── Top tab bar ── */}
+      <div className="sm:hidden fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-sm border-b border-[#1a1a1a] flex">
         {TABS.map(({ page, href, icon: Icon, label }) => {
           const active = currentPage === page;
           return (
@@ -62,7 +60,7 @@ export default function MobileNav({ currentPage, onLogout, plan, isStaff }: Prop
         </button>
       </div>
 
-      {/* ── Slide-up menu ── */}
+      {/* ── Slide-down menu ── */}
       {open && (
         <>
           {/* Backdrop */}
@@ -72,14 +70,9 @@ export default function MobileNav({ currentPage, onLogout, plan, isStaff }: Prop
           />
 
           {/* Panel */}
-          <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[70] bg-[#0d0d0d] border-t border-[#1a1a1a] rounded-t-[20px] animate-slide-up">
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-[#2a2a2a]" />
-            </div>
-
-            {/* Close */}
-            <div className="flex items-center justify-between px-5 py-3">
+          <div className="sm:hidden fixed top-0 left-0 right-0 z-[70] bg-[#0d0d0d] border-b border-[#1a1a1a] rounded-b-[20px] animate-slide-down">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-3">
               <span className="text-white font-semibold text-base">Navigation</span>
               <button onClick={() => setOpen(false)} className="p-2 text-[#666666] hover:text-white rounded-full">
                 <X className="w-5 h-5" />
@@ -117,7 +110,7 @@ export default function MobileNav({ currentPage, onLogout, plan, isStaff }: Prop
             <div className="mx-4 my-2 border-t border-[#1a1a1a]" />
 
             {/* Secondary actions */}
-            <div className="px-4 pb-2 space-y-1">
+            <div className="px-4 space-y-1">
               {(plan === "free" && !isStaff) && (
                 <Link
                   href="/pricing"
@@ -150,8 +143,10 @@ export default function MobileNav({ currentPage, onLogout, plan, isStaff }: Prop
               </button>
             </div>
 
-            {/* Safe area bottom padding */}
-            <div className="h-6" />
+            {/* Handle at bottom */}
+            <div className="flex justify-center py-3">
+              <div className="w-10 h-1 rounded-full bg-[#2a2a2a]" />
+            </div>
           </div>
         </>
       )}

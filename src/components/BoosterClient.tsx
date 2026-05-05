@@ -301,7 +301,7 @@ export default function BoosterClient({
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0 sm:pl-56">
+    <div className="min-h-screen bg-black flex flex-col pt-14 sm:pt-0 sm:pl-56">
       <Sidebar
         currentPage="booster"
         onLogout={handleLogout}

@@ -114,7 +114,7 @@ export default function AnalyticsClient({
     .map((s) => ({ name: s.replace("N'a pas répondu", "Absent"), count: statusCounts[s], fill: STATUS_COLORS_MAP[s] ?? "#666" }));
 
   return (
-    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0 sm:pl-56">
+    <div className="min-h-screen bg-black flex flex-col pt-14 sm:pt-0 sm:pl-56">
       <Sidebar
         currentPage="analytics"
         onLogout={handleLogout}
