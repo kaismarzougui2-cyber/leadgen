@@ -172,7 +172,11 @@ export default function CrmClient({
           .range(offset, offset + PAGE - 1);
         if (!data || data.length === 0) break;
         extra.push(...(data as Prospect[]));
-        if (!cancelled) setProspects(prev => [...prev, ...(data as Prospect[])]);
+        if (!cancelled) setProspects(prev => {
+          const seen = new Set(prev.map(p => p.id));
+          const fresh = (data as Prospect[]).filter(p => !seen.has(p.id));
+          return fresh.length > 0 ? [...prev, ...fresh] : prev;
+        });
         if (data.length < PAGE) break;
         offset += PAGE;
       }
@@ -371,10 +375,13 @@ export default function CrmClient({
   // Reset display limit whenever filters change
   useEffect(() => { setDisplayLimit(DISPLAY_PAGE); }, [filterStatus, filterNoWebsite, filterCity, filterJob, filterFolder, search]);
 
-  const uniqueCities = Array.from(new Set(prospects.map((p) => p.query_city).filter(Boolean))) as string[];
-  const uniqueJobs  = Array.from(new Set(prospects.map((p) => p.query_job).filter(Boolean))) as string[];
+  // Deduplicate by UUID (guards against StrictMode double-mount or re-fetch)
+  const dedupedProspects = prospects.filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
 
-  const filtered = prospects.filter((p) => {
+  const uniqueCities = Array.from(new Set(dedupedProspects.map((p) => p.query_city).filter(Boolean))) as string[];
+  const uniqueJobs  = Array.from(new Set(dedupedProspects.map((p) => p.query_job).filter(Boolean))) as string[];
+
+  const filtered = dedupedProspects.filter((p) => {
     const matchStatus = filterStatus === "Tous" || p.status === filterStatus;
     const q = search.toLowerCase();
     const matchSearch =
@@ -391,8 +398,8 @@ export default function CrmClient({
     return matchStatus && matchSearch && matchNoWebsite && matchCity && matchJob && matchFolder;
   });
 
-  const countByStatus = (s: Status) => prospects.filter((p) => p.status === s).length;
-  const countByFolder = (id: string) => prospects.filter((p) => p.folder_id === id).length;
+  const countByStatus = (s: Status) => dedupedProspects.filter((p) => p.status === s).length;
+  const countByFolder = (id: string) => dedupedProspects.filter((p) => p.folder_id === id).length;
   const hasActiveFilters = filterStatus !== "Tous" || filterNoWebsite || filterCity || filterJob || filterFolder || search;
 
   return (
@@ -408,7 +415,7 @@ export default function CrmClient({
             <h1 className="text-3xl font-bold text-white tracking-tight">Mon CRM</h1>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-[#aaaaaa]">
-                {prospects.length} prospect{prospects.length !== 1 ? "s" : ""} sauvegardé{prospects.length !== 1 ? "s" : ""}
+                {dedupedProspects.length} prospect{dedupedProspects.length !== 1 ? "s" : ""} sauvegardé{dedupedProspects.length !== 1 ? "s" : ""}
               </p>
               {loadingMore && (
                 <span className="flex items-center gap-1.5 text-xs text-[#555555]">
@@ -456,7 +463,7 @@ export default function CrmClient({
               <Upload className="w-4 h-4" />
               <span className="hidden sm:block">Importer CSV</span>
             </button>
-            {prospects.length > 0 && (
+            {dedupedProspects.length > 0 && (
               <button
                 onClick={exportCSV}
                 className="flex items-center gap-2 bg-[#0d0d0d] hover:bg-[#1a1a1a] border border-[#1a1a1a] hover:border-[#2a2a2a] text-white font-medium px-4 py-2.5 rounded-[9px] transition-colors text-sm min-h-[44px]"
@@ -497,7 +504,7 @@ export default function CrmClient({
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              Tous ({prospects.length})
+              Tous ({dedupedProspects.length})
             </button>
 
             {/* Dossiers existants */}
@@ -687,14 +694,14 @@ export default function CrmClient({
           {/* Résultat du filtre */}
           {hasActiveFilters && (
             <p className="text-xs text-[#555555]">
-              {filtered.length} résultat{filtered.length !== 1 ? "s" : ""} sur {prospects.length}
+              {filtered.length} résultat{filtered.length !== 1 ? "s" : ""} sur {dedupedProspects.length}
             </p>
           )}
         </div>
 
         {/* ── Prospects ───────────────────────────────────── */}
         {viewMode === "kanban" ? (
-          prospects.length === 0 ? (
+          dedupedProspects.length === 0 ? (
             <EmptyState
               icon={Users}
               title="Aucun prospect sauvegardé"
@@ -705,7 +712,7 @@ export default function CrmClient({
             <KanbanBoard prospects={filtered} onStatusChange={updateStatus} />
           )
         ) : filtered.length === 0 ? (
-          prospects.length === 0 ? (
+          dedupedProspects.length === 0 ? (
             <EmptyState
               icon={Users}
               title="Aucun prospect sauvegardé"
