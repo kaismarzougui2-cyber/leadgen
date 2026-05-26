@@ -47,6 +47,19 @@ const STATUSES = [
 
 type Status = (typeof STATUSES)[number];
 
+// Higher = this status wins when same phone has multiple records
+const STATUS_PRIORITY: Record<string, number> = {
+  "À appeler":       1,
+  "N'a pas répondu": 2,
+  "A répondu":       3,
+  "Réfléchit":       4,
+  "À rappeler":      5,
+  "Pas intéressé":   6,
+  "Intéressé":       7,
+  "Ne pas rappeler": 8,
+  "Client signé":    9,
+};
+
 interface Prospect {
   id: string;
   name: string;
@@ -257,19 +270,36 @@ export default function CrmClient({
   }
 
   async function updateStatus(id: string, status: Status) {
-    setProspects((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+    const phone = prospects.find(p => p.id === id)?.phone?.trim();
+
+    // Update state: the target record + every duplicate with same phone
+    setProspects((prev) => prev.map((p) => {
+      if (p.id === id) return { ...p, status };
+      if (phone && p.phone?.trim() === phone) return { ...p, status };
+      return p;
+    }));
+
     const now = new Date().toISOString();
+    const { data: { user: u } } = await supabase.auth.getUser();
+
+    // Update DB: propagate to all duplicates with same phone
     const { error } = await supabase
       .from("prospects")
       .update({ status, updated_at: now })
-      .eq("id", id);
-    if (error) {
+      .eq("user_id", u?.id ?? "")
+      .eq("phone", phone ?? "");
+
+    if (!phone || error) {
+      // Fallback: update only the target record
+      await supabase.from("prospects").update({ status, updated_at: now }).eq("id", id);
+    }
+
+    if (error && !phone) {
       toast("Erreur lors de la mise à jour du statut", "error");
       return;
     }
     toast(`Statut mis à jour : ${status}`, "success");
     // Auto-log the interaction
-    const { data: { user: u } } = await supabase.auth.getUser();
     if (u) {
       const { data: log } = await supabase
         .from("call_logs")
@@ -375,8 +405,25 @@ export default function CrmClient({
   // Reset display limit whenever filters change
   useEffect(() => { setDisplayLimit(DISPLAY_PAGE); }, [filterStatus, filterNoWebsite, filterCity, filterJob, filterFolder, search]);
 
-  // Deduplicate by UUID (guards against StrictMode double-mount or re-fetch)
-  const dedupedProspects = prospects.filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i);
+  // 1. Dedup by UUID (StrictMode / re-mount guard)
+  // 2. Dedup by phone: if same phone appears twice, keep the highest-priority status only
+  //    so a prospect marked "N'a pas répondu" never re-appears as "À appeler"
+  const dedupedProspects = (() => {
+    const byId = new Map<string, Prospect>();
+    for (const p of prospects) { if (!byId.has(p.id)) byId.set(p.id, p); }
+
+    const byPhone = new Map<string, Prospect>();
+    for (const p of byId.values()) {
+      const key = p.phone?.trim() || p.id;
+      const existing = byPhone.get(key);
+      if (!existing || (STATUS_PRIORITY[p.status] ?? 0) > (STATUS_PRIORITY[existing.status] ?? 0)) {
+        byPhone.set(key, p);
+      }
+    }
+    return Array.from(byPhone.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  })();
 
   const uniqueCities = Array.from(new Set(dedupedProspects.map((p) => p.query_city).filter(Boolean))) as string[];
   const uniqueJobs  = Array.from(new Set(dedupedProspects.map((p) => p.query_job).filter(Boolean))) as string[];
