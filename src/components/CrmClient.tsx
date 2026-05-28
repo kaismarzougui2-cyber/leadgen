@@ -264,6 +264,68 @@ export default function CrmClient({
     toast(`Export CSV de ${filtered.length} prospect${filtered.length !== 1 ? "s" : ""} téléchargé`, "success");
   }
 
+  function exportICS() {
+    const withCallback = dedupedProspects.filter((p) => p.callback_at);
+    if (!withCallback.length) {
+      toast("Aucun rappel programmé", "error");
+      return;
+    }
+
+    const stamp = new Date().toISOString().replace(/[-:.]/g, "").slice(0, 15) + "Z";
+    const fmt   = (iso: string) =>
+      new Date(iso).toISOString().replace(/[-:.]/g, "").slice(0, 15) + "Z";
+    const esc   = (s: string) =>
+      s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+
+    const events = withCallback.map((p) => {
+      const dtstart = fmt(p.callback_at!);
+      const dtend   = fmt(new Date(new Date(p.callback_at!).getTime() + 30 * 60_000).toISOString());
+      const desc    = esc([
+        `Tél: ${p.phone}`,
+        p.address ? `Adresse: ${p.address}` : "",
+        p.note    ? `Note: ${p.note}`        : "",
+      ].filter(Boolean).join("\n"));
+
+      return [
+        "BEGIN:VEVENT",
+        `UID:${p.id}@leadgen`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART:${dtstart}`,
+        `DTEND:${dtend}`,
+        `SUMMARY:📞 Rappeler - ${esc(p.name)}`,
+        `DESCRIPTION:${desc}`,
+        "BEGIN:VALARM",
+        "TRIGGER:-PT15M",
+        "ACTION:DISPLAY",
+        `DESCRIPTION:Rappeler ${esc(p.name)}`,
+        "END:VALARM",
+        "END:VEVENT",
+      ].join("\r\n");
+    });
+
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//LeadGen//Rappels CRM//FR",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      ...events,
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `rappels-leadgen-${new Date().toISOString().slice(0, 10)}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(
+      `${withCallback.length} rappel${withCallback.length > 1 ? "s" : ""} exporté${withCallback.length > 1 ? "s" : ""} — ouvre le fichier sur ton iPhone`,
+      "success"
+    );
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut();
     window.location.href = "/";
@@ -517,6 +579,16 @@ export default function CrmClient({
               >
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:block">Exporter CSV</span>
+              </button>
+            )}
+            {dedupedProspects.some((p) => p.callback_at) && (
+              <button
+                onClick={exportICS}
+                title="Exporter les rappels vers Calendrier iPhone"
+                className="flex items-center gap-2 bg-[#0d0d0d] hover:bg-[#1a1a1a] border border-[#1a1a1a] hover:border-[#E5000A]/40 text-white font-medium px-4 py-2.5 rounded-[9px] transition-colors text-sm min-h-[44px]"
+              >
+                <Calendar className="w-4 h-4 text-[#E5000A]" />
+                <span className="hidden sm:block">Rappels iPhone</span>
               </button>
             )}
             <Link
