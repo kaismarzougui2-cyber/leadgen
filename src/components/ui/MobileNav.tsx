@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Search, Zap, Users, BarChart2, X, Settings, LogOut, ChevronDown } from "lucide-react";
 
-type Page = "dashboard" | "booster" | "crm" | "analytics";
+type Page = "dashboard" | "booster" | "crm" | "analytics" | "account";
 
 const TABS = [
   { page: "dashboard" as Page, href: "/dashboard", icon: Search,   label: "Recherche" },
@@ -18,6 +18,7 @@ const PAGE_LABELS: Record<Page, string> = {
   booster:   "Booster",
   crm:       "CRM",
   analytics:  "Analytics",
+  account:   "Compte",
 };
 
 interface Props {
@@ -52,7 +53,7 @@ export default function MobileNav({ currentPage, onLogout, plan, isStaff }: Prop
           <div className="w-7 h-7 rounded-[8px] bg-[#E5000A] flex items-center justify-center shadow-[0_0_10px_rgba(229,0,10,0.3)]">
             <Zap className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="text-base font-bold text-white tracking-tight">LeadGen</span>
+          <span className="text-base font-bold text-white tracking-tight">LeadVibe</span>
         </div>
 
         {/* Current page + menu toggle */}

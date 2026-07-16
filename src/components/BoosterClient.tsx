@@ -113,10 +113,6 @@ const MULTIPLIERS = [
   { value: 20, label: "x20" },
 ];
 
-const PLAN_LABELS: Record<string, string> = {
-  free: "Free", starter: "Starter", growth: "Growth", pro: "Pro",
-};
-
 // ── Composant ────────────────────────────────────────────────────────────────
 
 export default function BoosterClient({
@@ -387,7 +383,7 @@ export default function BoosterClient({
                 <div>
                   <p className="text-sm text-white font-medium">Prospection automatique — France entière</p>
                   <p className="text-xs text-[#aaaaaa] mt-0.5">
-                    Entrez juste un métier. LeadGen choisit automatiquement les prochaines villes à prospecter
+                    Entrez juste un métier. LeadVibe choisit automatiquement les prochaines villes à prospecter
                     (top 1 000 par population) et enregistre les villes déjà couvertes pour éviter les doublons.
                   </p>
                 </div>

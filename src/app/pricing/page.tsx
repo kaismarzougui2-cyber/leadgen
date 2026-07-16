@@ -59,7 +59,7 @@ export default function PricingPage() {
           <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center shadow-[0_0_12px_rgba(229,0,10,0.3)] group-hover:shadow-[0_0_16px_rgba(229,0,10,0.45)] transition-shadow">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xl font-bold text-white tracking-tight">LeadGen</span>
+          <span className="text-xl font-bold text-white tracking-tight">LeadVibe</span>
         </Link>
         <Link
           href="/"
@@ -184,15 +184,14 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* ── Callout marge ───────────────────────────────── */}
+        {/* ── Réassurance ─────────────────────────────────── */}
         <div className="mt-14 p-6 rounded-[12px] border border-[#1a1a1a] bg-[#0d0d0d] text-center space-y-1.5 animate-fade-in" style={{ animationDelay: "0.25s" }}>
           <p className="text-[#aaaaaa] text-sm">
-            Coût opérationnel estimé par recherche :{" "}
-            <span className="text-white font-semibold">~0,03€</span> (Google Places API)
+            Sans engagement — résiliez à tout moment depuis votre espace client.
           </p>
           <p className="text-[#666666] text-xs">
-            Marge brute estimée — Starter : <span className="text-[#22C55E] font-medium">~85%</span> · Pro :{" "}
-            <span className="text-[#22C55E] font-medium">~74%</span>
+            Paiement sécurisé par Stripe · Données hébergées dans l&apos;UE · Une question ?{" "}
+            <a href="mailto:contact@leadvibe.fr" className="text-[#aaaaaa] hover:text-white underline">contact@leadvibe.fr</a>
           </p>
         </div>
       </main>

@@ -21,7 +21,7 @@ export default function PageLoader({ variant = "default" }: { variant?: "crm" | 
           <div className="w-7 h-7 rounded-[8px] bg-[#E5000A] flex items-center justify-center">
             <Zap className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="text-base font-bold text-white tracking-tight">LeadGen</span>
+          <span className="text-base font-bold text-white tracking-tight">LeadVibe</span>
         </div>
         <div className="w-28 h-8 rounded-[9px] skeleton" />
       </div>
@@ -32,7 +32,7 @@ export default function PageLoader({ variant = "default" }: { variant?: "crm" | 
           <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center shadow-[0_0_12px_rgba(229,0,10,0.3)]">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xl font-bold text-white tracking-tight">LeadGen</span>
+          <span className="text-xl font-bold text-white tracking-tight">LeadVibe</span>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5">
           {NAV_ITEMS.map(({ icon: Icon, label }) => (

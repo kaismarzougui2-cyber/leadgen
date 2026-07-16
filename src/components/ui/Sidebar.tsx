@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Zap, Search, Users, BarChart2, Settings, LogOut } from "lucide-react";
 
-type Page = "dashboard" | "booster" | "crm" | "analytics";
+type Page = "dashboard" | "booster" | "crm" | "analytics" | "account";
 
 const NAV_ITEMS = [
   { page: "dashboard" as Page, href: "/dashboard", icon: Search,   label: "Recherche" },
@@ -38,7 +38,7 @@ export default function Sidebar({ currentPage, onLogout, userEmail, plan, isStaf
         <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center shadow-[0_0_12px_rgba(229,0,10,0.3)]">
           <Zap className="w-4 h-4 text-white" />
         </div>
-        <span className="text-xl font-bold text-white tracking-tight">LeadGen</span>
+        <span className="text-xl font-bold text-white tracking-tight">LeadVibe</span>
       </div>
 
       {/* Navigation */}
@@ -101,7 +101,11 @@ export default function Sidebar({ currentPage, onLogout, userEmail, plan, isStaf
         {/* Account */}
         <Link
           href="/account"
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] text-sm text-[#aaaaaa] hover:bg-[#111111] hover:text-white transition-colors"
+          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] text-sm transition-colors ${
+            currentPage === "account"
+              ? "bg-[#160002] text-[#E5000A]"
+              : "text-[#aaaaaa] hover:bg-[#111111] hover:text-white"
+          }`}
         >
           <Settings className="w-4 h-4 shrink-0" />
           Mon compte

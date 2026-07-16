@@ -3,10 +3,7 @@
 import { useState } from "react";
 import {
   Zap,
-  Search,
-  Users,
   LogOut,
-  Settings,
   CreditCard,
   BarChart3,
   Mail,
@@ -17,6 +14,8 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import MobileNav from "@/components/ui/MobileNav";
+import Sidebar from "@/components/ui/Sidebar";
 
 const PLAN_LABELS: Record<string, string> = {
   free: "Free",
@@ -90,67 +89,24 @@ export default function AccountClient({
     setResetSent(true);
   }
 
-  const usagePct = Math.min(100, Math.round((searchesUsed / searchesLimit) * 100));
+  const usagePct = searchesLimit > 0
+    ? Math.min(100, Math.round((searchesUsed / searchesLimit) * 100))
+    : 0;
   const periodEndFormatted = periodEnd
     ? new Date(periodEnd).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
     : null;
 
   return (
-    <div className="min-h-screen bg-black flex flex-col pb-20 sm:pb-0">
-      {/* Navbar */}
-      <nav className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white">LeadVibe</span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1">
-            <Link href="/dashboard" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors">
-              Recherche
-            </Link>
-            <Link href="/crm" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-[#aaaaaa] hover:text-white hover:bg-[#111111] transition-colors flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5" />
-              CRM
-            </Link>
-            <Link href="/account" className="px-3 py-1.5 rounded-[9px] text-sm font-medium text-white bg-[#1a1a1a] flex items-center gap-1.5">
-              <Settings className="w-3.5 h-3.5" />
-              Compte
-            </Link>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-[#aaaaaa] hidden sm:block">{user.email}</span>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-sm text-[#aaaaaa] hover:text-white transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:block">Déconnexion</span>
-          </button>
-        </div>
-      </nav>
-
-      {/* Mobile bottom tab bar */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-[#1a1a1a] flex">
-        <Link href="/dashboard" className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#aaaaaa] active:bg-[#111111]">
-          <Search className="w-5 h-5" />
-          <span className="text-xs font-medium">Recherche</span>
-        </Link>
-        <Link href="/crm" className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#aaaaaa] active:bg-[#111111]">
-          <Users className="w-5 h-5" />
-          <span className="text-xs font-medium">Mon CRM</span>
-        </Link>
-        <Link href="/account" className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#E5000A] bg-[#160002]">
-          <Settings className="w-5 h-5" />
-          <span className="text-xs font-medium">Compte</span>
-        </Link>
-        <button onClick={handleLogout} className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[#aaaaaa] active:bg-[#111111]">
-          <LogOut className="w-5 h-5" />
-          <span className="text-xs font-medium">Déco</span>
-        </button>
-      </div>
+    <div className="min-h-screen bg-black flex flex-col pt-14 sm:pt-0 sm:pl-56">
+      <Sidebar
+        currentPage="account"
+        onLogout={handleLogout}
+        userEmail={user.email}
+        plan={plan}
+        searchesUsed={searchesUsed}
+        searchesLimit={searchesLimit}
+      />
+      <MobileNav currentPage="account" onLogout={handleLogout} plan={plan} />
 
       <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-10 space-y-6">
         <div>

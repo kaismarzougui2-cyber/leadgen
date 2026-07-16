@@ -4,7 +4,7 @@ import AnalyticsClient from "@/components/AnalyticsClient";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Analytics – LeadGen" };
+export const metadata = { title: "Analytics – LeadVibe" };
 
 function getWeekStart(date: Date): string {
   const d = new Date(date);

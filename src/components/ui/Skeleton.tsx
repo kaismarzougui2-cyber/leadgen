@@ -1,4 +1,4 @@
-/* Skeleton loaders — LeadGen Design System */
+/* Skeleton loaders — LeadVibe Design System */
 
 interface SkeletonProps {
   className?: string;

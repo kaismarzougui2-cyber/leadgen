@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  Zap,
   Users,
   Search,
   Phone,
@@ -251,8 +250,13 @@ export default function CrmClient({
       new Date(p.created_at).toLocaleDateString("fr-FR"),
       p.callback_at ? new Date(p.callback_at).toLocaleString("fr-FR") : "",
     ]);
+    // Neutralise les formules Excel (=, +, -, @) pour éviter l'injection CSV
+    const sanitize = (v: unknown) => {
+      const s = String(v);
+      return /^[=+\-@]/.test(s) ? `'${s}` : s;
+    };
     const csv = [headers, ...rows]
-      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"))
+      .map((r) => r.map((v) => `"${sanitize(v).replace(/"/g, '""')}"`).join(";"))
       .join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -288,7 +292,7 @@ export default function CrmClient({
 
       return [
         "BEGIN:VEVENT",
-        `UID:${p.id}@leadgen`,
+        `UID:${p.id}@leadvibe`,
         `DTSTAMP:${stamp}`,
         `DTSTART:${dtstart}`,
         `DTEND:${dtend}`,
@@ -306,7 +310,7 @@ export default function CrmClient({
     const ics = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//LeadGen//Rappels CRM//FR",
+      "PRODID:-//LeadVibe//Rappels CRM//FR",
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
       ...events,
@@ -317,7 +321,7 @@ export default function CrmClient({
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
     a.href     = url;
-    a.download = `rappels-leadgen-${new Date().toISOString().slice(0, 10)}.ics`;
+    a.download = `rappels-leadvibe-${new Date().toISOString().slice(0, 10)}.ics`;
     a.click();
     URL.revokeObjectURL(url);
     toast(
@@ -345,18 +349,25 @@ export default function CrmClient({
     const { data: { user: u } } = await supabase.auth.getUser();
 
     // Update DB: propagate to all duplicates with same phone
-    const { error } = await supabase
-      .from("prospects")
-      .update({ status, updated_at: now })
-      .eq("user_id", u?.id ?? "")
-      .eq("phone", phone ?? "");
-
-    if (!phone || error) {
+    let updateError = null;
+    if (phone && u) {
+      const { error } = await supabase
+        .from("prospects")
+        .update({ status, updated_at: now })
+        .eq("user_id", u.id)
+        .eq("phone", phone);
+      updateError = error;
+    }
+    if (!phone || updateError) {
       // Fallback: update only the target record
-      await supabase.from("prospects").update({ status, updated_at: now }).eq("id", id);
+      const { error } = await supabase
+        .from("prospects")
+        .update({ status, updated_at: now })
+        .eq("id", id);
+      updateError = error;
     }
 
-    if (error && !phone) {
+    if (updateError) {
       toast("Erreur lors de la mise à jour du statut", "error");
       return;
     }

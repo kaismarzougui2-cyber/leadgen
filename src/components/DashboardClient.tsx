@@ -54,13 +54,6 @@ interface Props {
   isStaff?: boolean;
 }
 
-const PLAN_LABELS: Record<string, string> = {
-  free: "Free",
-  starter: "Starter",
-  growth: "Growth",
-  pro: "Pro",
-};
-
 export default function DashboardClient({ user, plan, searchesUsed: initialUsed, searchesLimit, isStaff = false }: Props) {
   const [job, setJob] = useState("");
   const [city, setCity] = useState("");

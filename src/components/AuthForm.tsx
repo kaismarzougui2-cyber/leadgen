@@ -72,7 +72,7 @@ export default function AuthForm({ redirectTo = "/dashboard" }: { redirectTo?: s
         <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center">
           <Zap className="w-4 h-4 text-white" />
         </div>
-        <span className="text-xl font-bold text-white">LeadGen</span>
+        <span className="text-xl font-bold text-white">LeadVibe</span>
       </div>
 
       <h2 className="text-2xl font-bold text-white mb-1">

@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { enrichWithInsee } from '@/lib/insee'
-import { PLAN_LIMITS, type PlanId } from '@/lib/plans'
+import {
+  getOrCreateSubscription,
+  resetPeriodIfExpired,
+  consumeCredits,
+  refundCredits,
+  totalAllowedOf,
+} from '@/lib/quota'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,65 +36,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
     }
 
-    // Quota check via subscriptions table
-    let { data: sub } = await supabase
-      .from('subscriptions')
-      .select('id, plan, searches_used, searches_limit, extra_credits, period_start, is_staff')
-      .eq('user_id', user.id)
-      .single()
+    // Les quotas passent par le client service role : la table subscriptions
+    // n'est pas modifiable par les utilisateurs (voir migration harden_security).
+    const admin = createAdminClient()
 
-    // Fallback for existing users without a subscription row
-    if (!sub) {
-      const now = new Date().toISOString()
-      await supabase.from('subscriptions').insert({
-        user_id: user.id,
-        plan: 'free',
-        searches_limit: 5,
-        searches_used: 0,
-        period_start: now,
-      })
-      const { data: newSub } = await supabase
-        .from('subscriptions')
-        .select('id, plan, searches_used, searches_limit, extra_credits, period_start, is_staff')
-        .eq('user_id', user.id)
-        .single()
-      sub = newSub
-    }
-
+    let sub = await getOrCreateSubscription(admin, user.id)
     if (!sub) {
       return NextResponse.json({ error: 'Abonnement introuvable.' }, { status: 500 })
     }
 
     const isStaff = sub.is_staff === true
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY
+
+    // Mode démo (pas de clé API) : données fictives, aucun crédit consommé
+    if (!apiKey) {
+      const mockResults = generateMockResults(job, city)
+      await admin.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: mockResults.length })
+      return NextResponse.json({ results: mockResults, total: mockResults.length, demo: true })
+    }
 
     if (!isStaff) {
-      // Auto-reset if 30 days have passed since period_start
-      if (sub.period_start) {
-        const daysSince = (Date.now() - new Date(sub.period_start).getTime()) / 86_400_000
-        if (daysSince >= 30) {
-          const now = new Date().toISOString()
-          await supabase
-            .from('subscriptions')
-            .update({ searches_used: 0, period_start: now, updated_at: now })
-            .eq('user_id', user.id)
-          sub = { ...sub, searches_used: 0, period_start: now }
-        }
-      }
+      sub = await resetPeriodIfExpired(admin, user.id, sub)
 
-      const planLimit = PLAN_LIMITS[(sub.plan as PlanId) ?? 'free'] ?? 5
-      const totalAllowed = planLimit + (sub.extra_credits ?? 0)
-
-      // ── Atomic quota increment ──────────────────────────────────────────────
-      const now = new Date().toISOString()
-      const { data: incremented } = await supabase
-        .from('subscriptions')
-        .update({ searches_used: sub.searches_used + 1, updated_at: now })
-        .eq('user_id', user.id)
-        .eq('searches_used', sub.searches_used)
-        .lt('searches_used', totalAllowed)
-        .select('searches_used')
-
-      if (!incremented || incremented.length === 0) {
+      const ok = await consumeCredits(admin, user.id, sub, 1)
+      if (!ok) {
+        const totalAllowed = totalAllowedOf(sub)
         return NextResponse.json(
           {
             error: `Quota de 30 jours atteint (${sub.searches_used}/${totalAllowed} recherches). Passez à un plan supérieur.`,
@@ -100,16 +73,6 @@ export async function POST(request: NextRequest) {
         )
       }
     }
-    // ─────────────────────────────────────────────────────────────────────────
-
-    const apiKey = process.env.GOOGLE_PLACES_API_KEY
-
-    // Demo mode
-    if (!apiKey) {
-      const mockResults = generateMockResults(job, city)
-      await supabase.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: mockResults.length })
-      return NextResponse.json({ results: mockResults, total: mockResults.length, demo: true })
-    }
 
     const RESULTS_LIMIT: Record<string, number> = {
       free: 5,
@@ -117,28 +80,25 @@ export async function POST(request: NextRequest) {
       growth: 20,
       pro: 60,
     }
-    const maxResults = isStaff ? 60 : (RESULTS_LIMIT[sub?.plan ?? 'free'] ?? 5)
+    const maxResults = isStaff ? 60 : (RESULTS_LIMIT[sub.plan] ?? 5)
 
     // ── Cache lookup ──────────────────────────────────────────────────────────
     const cacheCity = city.toLowerCase()
     const cacheProfession = job.toLowerCase()
 
-    const { data: cached } = await supabase
+    const { data: cached } = await admin
       .from('search_cache')
       .select('results')
       .eq('city', cacheCity)
       .eq('profession', cacheProfession)
       .gt('expires_at', new Date().toISOString())
-      .single()
+      .maybeSingle()
 
     let allGoogleResults: GooglePlace[]
 
     if (cached?.results) {
-      console.log(`[search] CACHE HIT — "${job}" à "${city}" (${(cached.results as GooglePlace[]).length} résultats)`)
       allGoogleResults = cached.results as GooglePlace[]
     } else {
-      console.log(`[search] CACHE MISS — "${job}" à "${city}" — appel Google Maps API`)
-
       // ── Google Maps avec pagination (jusqu'à 3 pages = 60 résultats) ────────
       allGoogleResults = []
       let pageToken: string | undefined = undefined
@@ -170,11 +130,15 @@ export async function POST(request: NextRequest) {
         )
 
         if (!googleResponse.ok) {
-          const googleError = await googleResponse.json()
+          const googleError = await googleResponse.json().catch(() => null)
           console.error(`[search] Google Places API error (page ${page}):`, googleError)
           if (page === 1) {
-            const detail = googleError?.error?.message ?? googleError?.error?.status ?? JSON.stringify(googleError)
-            return NextResponse.json({ error: `Erreur Google Places : ${detail}` }, { status: 502 })
+            // Échec total : le crédit réservé est remboursé
+            if (!isStaff) await refundCredits(admin, user.id, 1)
+            return NextResponse.json(
+              { error: 'Le service de recherche est momentanément indisponible. Votre crédit n\'a pas été décompté — réessayez dans quelques instants.' },
+              { status: 502 }
+            )
           }
           // Pages 2/3 : on s'arrête silencieusement si erreur
           break
@@ -184,15 +148,13 @@ export async function POST(request: NextRequest) {
         const places: GooglePlace[] = json.places ?? []
         allGoogleResults = allGoogleResults.concat(places)
 
-        console.log(`[search] Page ${page} — ${places.length} résultats (total: ${allGoogleResults.length})`)
-
         pageToken = json.nextPageToken ?? undefined
         if (!pageToken) break
         page++
       }
 
       // Sauvegarde en cache (upsert sur city + profession)
-      const { error: cacheError } = await supabase
+      const { error: cacheError } = await admin
         .from('search_cache')
         .upsert(
           {
@@ -207,8 +169,6 @@ export async function POST(request: NextRequest) {
 
       if (cacheError) {
         console.warn('[search] Échec mise en cache (non bloquant):', cacheError.message)
-      } else {
-        console.log(`[search] Résultats mis en cache — "${job}" à "${city}" (${allGoogleResults.length} entrées)`)
       }
     }
 
@@ -239,9 +199,9 @@ export async function POST(request: NextRequest) {
       return insee ? { ...r, siren: insee.siren, siret: insee.siret, naf_code: insee.naf_code, naf_label: insee.naf_label } : r
     })
 
-    await supabase.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: results.length })
+    await admin.from('searches').insert({ user_id: user.id, query_job: job, query_city: city, results_count: results.length })
 
-    return NextResponse.json({ results, total: filtered.length, truncated, plan: sub?.plan ?? 'free' })
+    return NextResponse.json({ results, total: filtered.length, truncated, plan: sub.plan })
 
   } catch (error) {
     console.error('Search error:', error)

@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { PLAN_LIMITS, type PlanId } from '@/lib/plans'
+import { createAdminClient } from '@/lib/supabase/admin'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { loadCommunesServer, getCitiesForBoost, getCitiesForFrance, type ZoneType } from '@/lib/communes-server'
+import {
+  getOrCreateSubscription,
+  resetPeriodIfExpired,
+  consumeCredits,
+  refundCredits,
+  totalAllowedOf,
+} from '@/lib/quota'
 
 // Plans autorisés à utiliser le Mode Booster
 const BOOST_ALLOWED_PLANS = new Set(['starter', 'pro', 'growth'])
@@ -38,19 +46,19 @@ async function searchCity(
   city: string,
   apiKey: string,
   maxResults: number,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  admin: SupabaseClient
 ): Promise<BoostResult[]> {
   const cacheCity = city.toLowerCase()
   const cacheProfession = job.toLowerCase()
 
   // Vérification du cache (30j TTL)
-  const { data: cached } = await supabase
+  const { data: cached } = await admin
     .from('search_cache')
     .select('results')
     .eq('city', cacheCity)
     .eq('profession', cacheProfession)
     .gt('expires_at', new Date().toISOString())
-    .single()
+    .maybeSingle()
 
   let places: GooglePlace[]
 
@@ -77,7 +85,7 @@ async function searchCity(
     places = json.places ?? []
 
     // Mise en cache
-    await supabase
+    await admin
       .from('search_cache')
       .upsert(
         {
@@ -89,7 +97,6 @@ async function searchCity(
         },
         { onConflict: 'city,profession' }
       )
-      .then(() => null)
   }
 
   return places
@@ -132,57 +139,44 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
-    // ── Vérification du plan ──────────────────────────────────────────────────
-    let { data: sub } = await supabase
-      .from('subscriptions')
-      .select('id, plan, searches_used, searches_limit, extra_credits, period_start, is_staff')
-      .eq('user_id', user.id)
-      .single()
+    const admin = createAdminClient()
 
+    // ── Vérification du plan ──────────────────────────────────────────────────
+    let sub = await getOrCreateSubscription(admin, user.id)
     if (!sub) return NextResponse.json({ error: 'Abonnement introuvable.' }, { status: 500 })
 
     const isStaff = sub.is_staff === true
-    const planLimit = PLAN_LIMITS[(sub.plan as PlanId) ?? 'free'] ?? 5
-    const totalAllowed = isStaff ? Number.MAX_SAFE_INTEGER : planLimit + (sub.extra_credits ?? 0)
-    const remaining = isStaff ? Number.MAX_SAFE_INTEGER : totalAllowed - sub.searches_used
 
     if (!isStaff) {
       if (!BOOST_ALLOWED_PLANS.has(sub.plan)) {
         return NextResponse.json(
-          { error: 'Le Mode Booster est disponible à partir du plan Starter.', upgradRequired: true },
+          { error: 'Le Mode Booster est disponible à partir du plan Starter.', upgradeRequired: true },
           { status: 403 }
         )
       }
 
-      // Auto-reset quota mensuel
-      if (sub.period_start) {
-        const daysSince = (Date.now() - new Date(sub.period_start).getTime()) / 86_400_000
-        if (daysSince >= 30) {
-          const now = new Date().toISOString()
-          await supabase
-            .from('subscriptions')
-            .update({ searches_used: 0, period_start: now, updated_at: now })
-            .eq('user_id', user.id)
-          sub = { ...sub, searches_used: 0, period_start: now }
-        }
-      }
+      // Auto-reset quota mensuel (avant tout calcul de crédits restants)
+      sub = await resetPeriodIfExpired(admin, user.id, sub)
+    }
 
-      if (remaining <= 0) {
-        return NextResponse.json(
-          {
-            error: `Quota atteint (${sub.searches_used}/${totalAllowed}). Passez à un plan supérieur.`,
-            limitReached: true,
-          },
-          { status: 429 }
-        )
-      }
+    const totalAllowed = isStaff ? Number.MAX_SAFE_INTEGER : totalAllowedOf(sub)
+    const remaining = isStaff ? Number.MAX_SAFE_INTEGER : totalAllowed - sub.searches_used
+
+    if (!isStaff && remaining <= 0) {
+      return NextResponse.json(
+        {
+          error: `Quota atteint (${sub.searches_used}/${totalAllowed}). Passez à un plan supérieur.`,
+          limitReached: true,
+        },
+        { status: 429 }
+      )
     }
 
     // ── Sélection des villes via l'algorithme Boost ───────────────────────────
     const communes = loadCommunesServer()
     if (!communes.length) {
       return NextResponse.json(
-        { error: 'Données géographiques indisponibles. Relancez npm run download-communes.' },
+        { error: 'Données géographiques indisponibles. Réessayez dans quelques instants.' },
         { status: 503 }
       )
     }
@@ -200,7 +194,7 @@ export async function POST(request: NextRequest) {
 
     // Réinitialisation de l'historique si demandé
     if (resetHistory) {
-      await supabase
+      await admin
         .from('boost_search_history')
         .delete()
         .eq('user_id', user.id)
@@ -208,7 +202,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Villes déjà recherchées pour ce métier
-    const { data: alreadySearched } = await supabase
+    const { data: alreadySearched } = await admin
       .from('boost_search_history')
       .select('city_name')
       .eq('user_id', user.id)
@@ -243,17 +237,9 @@ export async function POST(request: NextRequest) {
     const selectedCities = availableCities.slice(0, creditsToUse)
 
     // ── Déduction atomique des crédits (ignorée pour staff) ──────────────────
-    const now = new Date().toISOString()
     if (!isStaff) {
-      const { data: incremented } = await supabase
-        .from('subscriptions')
-        .update({ searches_used: sub.searches_used + creditsToUse, updated_at: now })
-        .eq('user_id', user.id)
-        .eq('searches_used', sub.searches_used)
-        .lte('searches_used', totalAllowed - creditsToUse)
-        .select('searches_used')
-
-      if (!incremented || incremented.length === 0) {
+      const ok = await consumeCredits(admin, user.id, sub, creditsToUse)
+      if (!ok) {
         return NextResponse.json(
           { error: 'Erreur quota (concurrence). Réessayez.', limitReached: true },
           { status: 429 }
@@ -267,6 +253,7 @@ export async function POST(request: NextRequest) {
 
     const allResults: BoostResult[] = []
     const citiesSearched: string[] = []
+    let failedCities = 0
 
     if (!apiKey) {
       // Mode démo
@@ -294,41 +281,63 @@ export async function POST(request: NextRequest) {
           await new Promise((r) => setTimeout(r, 800))
         }
         try {
-          const results = await searchCity(trade, city.nom, apiKey, maxPerCity, supabase)
+          const results = await searchCity(trade, city.nom, apiKey, maxPerCity, admin)
           allResults.push(...results)
           citiesSearched.push(city.nom)
         } catch {
           // Ville en erreur : on continue sans bloquer tout le boost
-          citiesSearched.push(city.nom)
+          failedCities++
         }
+      }
+
+      // Si toutes les villes ont échoué (panne fournisseur) : remboursement intégral
+      if (!isStaff && failedCities === selectedCities.length) {
+        await refundCredits(admin, user.id, creditsToUse)
+        return NextResponse.json(
+          { error: 'Le service de recherche est momentanément indisponible. Vos crédits n\'ont pas été décomptés — réessayez dans quelques instants.' },
+          { status: 502 }
+        )
+      }
+      // Remboursement partiel des villes en échec
+      if (!isStaff && failedCities > 0) {
+        await refundCredits(admin, user.id, failedCities)
       }
     }
 
-    // ── Enregistrement dans l'historique ─────────────────────────────────────
-    const historyRows = selectedCities.map((c) => ({
-      user_id: user.id,
-      trade_keyword: trade.toLowerCase(),
-      city_name: c.nom.toLowerCase(),
-      department_code: c.departement?.code ?? null,
-    }))
+    // ── Enregistrement dans l'historique (uniquement les villes traitées) ─────
+    const searchedNames = new Set(citiesSearched)
+    const historyRows = selectedCities
+      .filter((c) => searchedNames.has(c.nom))
+      .map((c) => ({
+        user_id: user.id,
+        trade_keyword: trade.toLowerCase(),
+        city_name: c.nom.toLowerCase(),
+        department_code: c.departement?.code ?? null,
+      }))
 
-    await supabase.from('boost_search_history').insert(historyRows)
+    if (historyRows.length > 0) {
+      await admin.from('boost_search_history').insert(historyRows)
+    }
 
     // Enregistrement dans searches (une ligne par ville)
-    await supabase.from('searches').insert(
-      citiesSearched.map((cityName) => ({
-        user_id: user.id,
-        query_job: trade,
-        query_city: cityName,
-        results_count: allResults.filter((r) => r.city === cityName).length,
-      }))
-    )
+    if (citiesSearched.length > 0) {
+      await admin.from('searches').insert(
+        citiesSearched.map((cityName) => ({
+          user_id: user.id,
+          query_job: trade,
+          query_city: cityName,
+          results_count: allResults.filter((r) => r.city === cityName).length,
+        }))
+      )
+    }
+
+    const effectiveCredits = creditsToUse - failedCities
 
     return NextResponse.json({
       results: allResults,
       cities_searched: citiesSearched,
       total: allResults.length,
-      credits_used: creditsToUse,
+      credits_used: effectiveCredits,
       exhausted,
       cities_already_covered: citiesAlreadyCovered,
       new_cities_found: availableCities.length,
@@ -346,7 +355,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Endpoint GET pour purger l'historique d'un métier
+// Endpoint DELETE pour purger l'historique d'un métier
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -358,7 +367,8 @@ export async function DELETE(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non authentifié.' }, { status: 401 })
 
-    await supabase
+    const admin = createAdminClient()
+    await admin
       .from('boost_search_history')
       .delete()
       .eq('user_id', user.id)

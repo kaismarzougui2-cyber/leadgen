@@ -42,7 +42,7 @@ export default async function Home({
           <div className="w-8 h-8 rounded-[9px] bg-[#E5000A] flex items-center justify-center">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xl font-bold text-white">LeadGen</span>
+          <span className="text-xl font-bold text-white">LeadVibe</span>
         </div>
         <Link href="/pricing" className="text-sm text-[#aaaaaa] hover:text-white transition-colors">
           Tarifs
@@ -75,7 +75,7 @@ export default async function Home({
           </div>
 
           <p className="text-lg text-[#aaaaaa] max-w-lg">
-            LeadGen scanne Google Places pour vous livrer des leads qualifiés
+            LeadVibe scanne Google Places pour vous livrer des leads qualifiés
             avec numéro de téléphone et score de confiance. Prospectez plus
             vite, convertissez mieux.
           </p>
